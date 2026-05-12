@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת ניהול חשיפות - קואנט</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Heebo', sans-serif; background-color: #f8fafc; color: #334155; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; height: 350px; max-height: 400px; margin: 0 auto; }
+        .nav-item.active { background-color: #f1f5f9; border-right: 4px solid #0d9488; color: #0f172a; font-weight: bold; }
+        .indicator-card:hover { transform: translateY(-2px); transition: all 0.2s; }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 z-10 flex-shrink-0">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-8 w-8 bg-teal-600 rounded flex items-center justify-center text-white font-bold">Q</div>
+                <h1 class="text-xl font-bold text-slate-800">מערכת ניהול חשיפות אינטראקטיבית</h1>
+            </div>
+            <div class="text-sm text-slate-400 font-medium">הכשרת הקואנט | שיעור 4</div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full">
+        <nav class="w-64 bg-white border-l border-slate-200 hidden md:block overflow-y-auto">
+            <div class="p-6">
+                <ul class="space-y-2">
+                    <li><button onclick="switchTab('overview')" id="nav-overview" class="nav-item active w-full text-right px-4 py-3 rounded-lg flex items-center gap-3">🏠 סקירה כללית</button></li>
+                    <li><button onclick="switchTab('sentiment')" id="nav-sentiment" class="nav-item w-full text-right px-4 py-3 rounded-lg flex items-center gap-3 text-slate-600">📊 סנטימנט ומרווח נשימה</button></li>
+                    <li><button onclick="switchTab('sectors')" id="nav-sectors" class="nav-item w-full text-right px-4 py-3 rounded-lg flex items-center gap-3 text-slate-600">🔄 רוטציה סקטוריאלית</button></li>
+                    <li><button onclick="switchTab('seasonality')" id="nav-seasonality" class="nav-item w-full text-right px-4 py-3 rounded-lg flex items-center gap-3 text-slate-600">📅 ניתוח עונתיות</button></li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="flex-1 overflow-y-auto p-4 md:p-8" id="content-area">
+            
+            <section id="view-overview" class="space-y-6">
+                <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-4">ניהול חשיפות: מהתיאוריה לפרקטיקה</h2>
+                    <p class="text-lg text-slate-600 leading-relaxed mb-6">
+                        ברוכים הבאים לכלי העזר האינטראקטיבי לניהול חשיפות. המטרה של דאשבורד זה היא לעזור לכם להבין את הדינמיקה של השוק מעבר למחיר היבש, ולזהות נקודות קיצון שבהן כדאי להגדיל או להקטין את החשיפה בתיק.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="p-6 bg-slate-50 rounded-xl border border-slate-100">
+                            <span class="text-2xl mb-2 block">📉</span>
+                            <h3 class="font-bold text-slate-800">ניתוח סנטימנט</h3>
+                            <p class="text-sm text-slate-500 mt-2">בדיקת ה"קרביים" של השוק - כמה מניות באמת משתתפות בעליות?</p>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-xl border border-slate-100">
+                            <span class="text-2xl mb-2 block">⚖️</span>
+                            <h3 class="font-bold text-slate-800">מרווח נשימה</h3>
+                            <p class="text-sm text-slate-500 mt-2">זיהוי מצבי קניית יתר (Overbought) או מכירת יתר (Oversold).</p>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-xl border border-slate-100">
+                            <span class="text-2xl mb-2 block">☀️</span>
+                            <h3 class="font-bold text-slate-800">מחזוריות</h3>
+                            <p class="text-sm text-slate-500 mt-2">הבנת העונתיות של נכסים מובילים על בסיס נתונים היסטוריים.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-sentiment" class="hidden space-y-6">
+                <div class="flex justify-between items-end">
+                    <h2 class="text-2xl font-bold text-slate-800">מדדי סנטימנט שוק</h2>
+                    <div class="flex bg-slate-200 p-1 rounded-lg">
+                        <button onclick="setSentiment('short')" id="btn-short" class="px-4 py-1.5 rounded-md text-sm font-bold bg-white text-teal-600 shadow-sm">טווח קצר</button>
+                        <button onclick="setSentiment('medium')" id="btn-medium" class="px-4 py-1.5 rounded-md text-sm font-bold text-slate-500">טווח בינוני</button>
+                        <button onclick="setSentiment('long')" id="btn-long" class="px-4 py-1.5 rounded-md text-sm font-bold text-slate-500">טווח ארוך</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <h3 id="sentiment-chart-title" class="font-bold text-slate-800 mb-4">גרף אינדיקטור</h3>
+                        <div class="chart-container">
+                            <canvas id="sentimentChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div id="indicator-info" class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm h-full">
+                            <h4 class="font-bold text-teal-600 mb-2">איך מחשבים?</h4>
+                            <p id="calc-text" class="text-sm text-slate-600 mb-4">בחר טווח זמן למעלה.</p>
+                            <h4 class="font-bold text-teal-600 mb-2">משמעות אופרטיבית:</h4>
+                            <p id="usage-text" class="text-sm text-slate-600">מידע ייטען כאן...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-sectors" class="hidden space-y-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">רוטציה סקטוריאלית: % מעל ממוצע 20</h2>
+                    <p class="text-slate-500 mb-6">כלי לזיהוי זרימת כספים בין סקטורים. עמודות אדומות/ירוקות מסמנות קיצון.</p>
+                    <div class="chart-container">
+                        <canvas id="sectorChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-seasonality" class="hidden space-y-6">
+                <div class="flex gap-4">
+                    <button onclick="updateSeasonality('TSLA')" class="px-6 py-2 bg-slate-800 text-white rounded-xl font-bold">TESLA</button>
+                    <button onclick="updateSeasonality('META')" class="px-6 py-2 bg-white border border-slate-200 text-slate-800 rounded-xl font-bold">META</button>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <h3 id="seasonality-title" class="font-bold text-slate-800 mb-4">עונתיות היסטורית</h3>
+                        <div class="chart-container">
+                            <canvas id="seasonalityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-amber-50 rounded-2xl p-6 border border-amber-100">
+                        <h3 class="font-bold text-amber-900 mb-3">תובנות עונתיות</h3>
+                        <ul id="seasonality-list" class="space-y-3 text-sm text-amber-800 leading-relaxed">
+                            </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // --- DATA OBJECTS ---
+        const dataConfig = {
+            sentiment: {
+                short: { title: '% מניות מעל ממוצע 20', calc: 'אחוז המניות במדד שנסחרות מעל SMA20.', usage: 'מעל 85% - קניית יתר (זהירות). מתחת ל-20% - מכירת יתר (הזדמנות).', data: [30, 45, 60, 85, 92, 70, 40, 15, 25, 35], threshold: [20, 85] },
+                medium: { title: '% מניות מעל ממוצע 50', calc: 'אחוז המניות במדד שנסחרות מעל SMA50.', usage: 'הטווח הקלאסי לזיהוי תיקונים משמעותיים. רמת ה-85% היא נורה אדומה.', data: [40, 50, 65, 75, 82, 86, 70, 55, 40, 35], threshold: [30, 85] },
+                long: { title: '% מניות מעל ממוצע 200', calc: 'אחוז המניות במדד שנסחרות מעל SMA200.', usage: 'מגדיר אם השוק ב-Bull Market או Bear Market. אישור מגמה ארוך טווח.', data: [60, 62, 65, 68, 72, 70, 65, 58, 52, 55], threshold: [40, 80] }
+            },
+            seasonality: {
+                TSLA: { 
+                    returns: [4.5, 2.0, -1.0, 3.5, -2.5, 5.0, 1.5, 0.0, -4.0, 2.0, 6.5, 4.0],
+                    hits: [70, 60, 40, 50, 40, 65, 55, 50, 20, 60, 80, 75],
+                    tips: ["ינואר חזק היסטורית (70% הצלחה).", "ספטמבר הוא החודש החלש ביותר.", "נובמבר-דצמבר מאופיינים בראלי עוצמתי."]
+                },
+                META: {
+                    returns: [2.0, -3.0, 1.5, 5.0, 2.5, -1.5, 4.0, -2.0, -3.5, 3.0, 2.0, 1.0],
+                    hits: [50, 30, 50, 80, 60, 40, 70, 40, 30, 60, 60, 50],
+                    tips: ["אפריל הוא חודש ה'יהלום' עם 80% הצלחה.", "פברואר נוטה להיות תנודתי ושלילי.", "יולי מציג מומנטום חיובי לקראת הקיץ."]
+                }
+            }
+        };
+
+        // --- CHARTS INSTANCES ---
+        let sentimentChart, sectorChart, seasonalityChart;
+
+        // --- NAVIGATION ---
+        function switchTab(id) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`view-${id}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`nav-${id}`).classList.add('active');
+
+            if(id === 'sentiment') setSentiment('short');
+            if(id === 'sectors') initSectorChart();
+            if(id === 'seasonality') updateSeasonality('TSLA');
+        }
+
+        // --- SENTIMENT ENGINE ---
+        function setSentiment(range) {
+            const config = dataConfig.sentiment[range];
+            document.getElementById('sentiment-chart-title').innerText = config.title;
+            document.getElementById('calc-text').innerText = config.calc;
+            document.getElementById('usage-text').innerText = config.usage;
+
+            // UI Toggle
+            ['short', 'medium', 'long'].forEach(r => {
+                const btn = document.getElementById(`btn-${r}`);
+                btn.className = (r === range) ? "px-4 py-1.5 rounded-md text-sm font-bold bg-white text-teal-600 shadow-sm" : "px-4 py-1.5 rounded-md text-sm font-bold text-slate-500";
+            });
+
+            const ctx = document.getElementById('sentimentChart').getContext('2d');
+            if(sentimentChart) sentimentChart.destroy();
+
+            sentimentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10'],
+                    datasets: [
+                        { label: config.title, data: config.data, borderColor: '#0d9488', tension: 0.3, fill: true, backgroundColor: 'rgba(13, 148, 136, 0.05)' },
+                        { label: 'קיצון עליון', data: Array(10).fill(config.threshold[1]), borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0, fill: false },
+                        { label: 'קיצון תחתון', data: Array(10).fill(config.threshold[0]), borderColor: '#22c55e', borderDash: [5,5], pointRadius: 0, fill: false }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // --- SECTOR ENGINE ---
+        function initSectorChart() {
+            const ctx = document.getElementById('sectorChart').getContext('2d');
+            if(sectorChart) sectorChart.destroy();
+            sectorChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['פיננסים', 'טכנולוגיה', 'אנרגיה', 'בריאות', 'תעשייה', 'נדל"ן'],
+                    datasets: [{
+                        data: [92, 38, 75, 55, 82, 25],
+                        backgroundColor: [ '#ef4444', '#22c55e', '#cbd5e1', '#cbd5e1', '#ef4444', '#22c55e' ]
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // --- SEASONALITY ENGINE ---
+        function updateSeasonality(asset) {
+            const data = dataConfig.seasonality[asset];
+            const ctx = document.getElementById('seasonalityChart').getContext('2d');
+            document.getElementById('seasonality-title').innerText = `עונתיות ממוצעת (10 שנים) - ${asset}`;
+            
+            const list = document.getElementById('seasonality-list');
+            list.innerHTML = data.tips.map(t => `<li>🔹 ${t}</li>`).join('');
+
+            if(seasonalityChart) seasonalityChart.destroy();
+            seasonalityChart = new Chart(ctx, {
+                data: {
+                    labels: ['ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצמ'],
+                    datasets: [
+                        { type: 'bar', label: 'תשואה ממוצעת', data: data.returns, backgroundColor: '#0d9488' },
+                        { type: 'line', label: '% הצלחה', data: data.hits, borderColor: '#f59e0b', yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y1: { position: 'right', min: 0, max: 100 } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

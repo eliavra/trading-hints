@@ -40,9 +40,7 @@ GREEN_SIGNALS = {
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-html, body { font-family: 'Inter', sans-serif; }
-[class*="st-"] { font-family: 'Inter', sans-serif; }
-[class*="stIcon"], .material-icons, .material-symbols-rounded { font-family: 'Material Symbols Rounded', 'Material Icons' !important; }
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
 /* header bar */
 header[data-testid="stHeader"] { background: white; border-bottom: 1px solid #e2e8f0; }
