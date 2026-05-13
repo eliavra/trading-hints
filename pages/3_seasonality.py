@@ -9,10 +9,12 @@ load_css()
 
 st.title("Seasonality Hunter")
 
-ticker_input = st.session_state.get("ticker_input", "SPY").upper().strip()
+col_search, _ = st.columns([1, 3])
+with col_search:
+    ticker_input = st.text_input("Lookup Symbol", value="SPY", placeholder="AAPL, TSLA, BTC-USD").upper().strip()
 
 if not ticker_input:
-    st.warning("Enter a ticker in the sidebar.")
+    st.warning("Please enter a ticker symbol to analyze.")
 else:
     with st.spinner(f"Loading 10y data for {ticker_input}..."):
         result = compute_seasonality(ticker_input)

@@ -28,20 +28,14 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-    refresh_interval = st.selectbox("Auto-refresh", ["Off", "1 min", "5 min", "15 min"], index=0)
+    st.divider()
+    st.markdown(f"<div style='font-size:.75rem;color:#94a3b8'>Last refresh: {datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
+
+col_empty, col_refresh = st.columns([8, 2])
+with col_refresh:
+    refresh_interval = st.selectbox("Auto-refresh", ["Off", "1 min", "5 min", "15 min"], index=0, key="global_refresh")
     interval_map = {"Off": 0, "1 min": 60_000, "5 min": 300_000, "15 min": 900_000}
     if interval_map[refresh_interval]:
         st_autorefresh(interval=interval_map[refresh_interval], key="auto_refresh")
-
-    st.divider()
-    
-    # Seasonality Ticker - Initialize in session state if not present
-    if "ticker_input" not in st.session_state:
-        st.session_state["ticker_input"] = "TSLA"
-        
-    st.session_state["ticker_input"] = st.text_input("Seasonality Ticker", value=st.session_state["ticker_input"]).upper().strip()
-
-    st.divider()
-    st.markdown(f"<div style='font-size:.75rem;color:#94a3b8'>Last refresh: {datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
 
 pg.run()
