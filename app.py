@@ -281,6 +281,9 @@ with tab_sectors:
 
     with st.spinner("Loading sector data..."):
         sectors = compute_sector_data()
+        
+    # Sort sectors from highest pct_vs_sma20 to lowest
+    sectors.sort(key=lambda s: s.pct_vs_sma20, reverse=False) # Plotly horizontal bars draw bottom-up, so we sort ascending to get highest on top
 
     bar_colors = []
     for s in sectors:
