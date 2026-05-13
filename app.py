@@ -282,8 +282,9 @@ with tab_sectors:
     with st.spinner("Loading sector data..."):
         sectors = compute_sector_data()
         
-    # Sort sectors from highest pct_vs_sma20 to lowest
-    sectors.sort(key=lambda s: s.pct_vs_sma20, reverse=False) # Plotly horizontal bars draw bottom-up, so we sort ascending to get highest on top
+    # Sort sectors from least to most (ascending)
+    # Since Plotly autorange="reversed" is used, the first element (least) will appear at the top.
+    sectors.sort(key=lambda s: s.pct_vs_sma20, reverse=False)
 
     bar_colors = []
     for s in sectors:
