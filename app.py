@@ -295,7 +295,7 @@ with tab_sectors:
             bar_colors.append("#94a3b8")
 
     sfig = go.Figure(go.Bar(
-        y=[s.name for s in sectors],
+        y=[f"{s.name} ({s.etf})" for s in sectors],
         x=[s.pct_vs_sma20 * 100 for s in sectors],
         marker_color=bar_colors,
         text=[f"{s.pct_vs_sma20:.1%}" for s in sectors],
