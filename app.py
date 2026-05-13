@@ -41,8 +41,8 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 html, body { font-family: 'Inter', sans-serif; }
-[class*="st-"] { font-family: 'Inter', sans-serif; }
-[class*="stIcon"], .material-icons, .material-symbols-rounded { font-family: 'Material Symbols Rounded', 'Material Icons' !important; }
+h1, h2, h3, h4, h5, h6, p, label, .card, .metric-value { font-family: 'Inter', sans-serif !important; }
+.material-icons, .material-symbols-rounded { font-family: 'Material Symbols Rounded' !important; }
 
 /* header bar */
 header[data-testid="stHeader"] { background: white; border-bottom: 1px solid #e2e8f0; }
@@ -249,7 +249,8 @@ with tab_breadth:
     color_map: dict[str, dict[str, str]] = {}
     for ind in breadth.indicators:
         sv = ind.signal.value
-        rows.append({"Indicator": ind.name, "Value": ind.value, "Signal": sv, "Action": ind.action})
+        val_str = str(ind.value) if not isinstance(ind.value, float) else f"{ind.value:.2f}"
+        rows.append({"Indicator": ind.name, "Value": val_str, "Signal": sv, "Action": ind.action})
         color_map[sv] = signal_color(ind.signal)
     df_b = pd.DataFrame(rows)
     styled = df_b.style.map(lambda v: style_signal_cell(v, color_map) if v in color_map else "", subset=["Signal"])
