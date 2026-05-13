@@ -18,9 +18,9 @@ st.markdown(f"""
 with st.spinner("Loading sector data..."):
     sectors = compute_sector_data()
 
-# Sort sectors from least to most (ascending)
-# Since Plotly autorange="reversed" is used, the first element (least) will appear at the top.
-sectors.sort(key=lambda s: s.pct_vs_sma20, reverse=False)
+# Sort sectors from most positive to most negative (descending)
+# With Plotly autorange="reversed", the first element (most positive) will appear at the top.
+sectors.sort(key=lambda s: s.pct_vs_sma20, reverse=True)
 
 bar_colors = []
 for s in sectors:
