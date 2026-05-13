@@ -44,9 +44,7 @@ class MarketBreadth:
     volume_breadth_ratio: float
     fear_greed_score: float
     vix: float = 0.0
-    ad_line: list[float] = field(default_factory=list)
-    ad_line_dates: list[str] = field(default_factory=list)
-    ad_line_trend: str = ""
+    ad_data: dict[str, dict] = field(default_factory=dict)
     indicators: list[BreadthIndicator] = field(default_factory=list)
 
 

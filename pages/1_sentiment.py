@@ -102,14 +102,20 @@ styled = df_b.style.map(lambda v: style_signal_cell(v, color_map) if v in color_
 st.dataframe(styled, use_container_width=True, hide_index=True)
 
 # --- A/D Line chart ---
-if breadth.ad_line and breadth.ad_line_dates:
+if breadth.ad_data:
+    ad_period = st.radio("A/D Line Timeframe", list(breadth.ad_data.keys()), index=2, horizontal=True) # default 6M
+    current_ad = breadth.ad_data[ad_period]
+    ad_line = current_ad["ad_line"]
+    ad_dates = current_ad["ad_dates"]
+    ad_trend = current_ad["trend"]
+    
     ad_fig = go.Figure(go.Scatter(
-        x=breadth.ad_line_dates, y=breadth.ad_line,
+        x=ad_dates, y=ad_line,
         mode="lines", line=dict(color=TEAL, width=2),
         fill="tozeroy", fillcolor="rgba(13,148,136,0.06)",
     ))
     ad_fig.update_layout(
-        title=f"Cumulative Advance-Decline Line (Trend: {breadth.ad_line_trend})",
+        title=f"Cumulative Advance-Decline Line (Trend: {ad_trend})",
         xaxis_title="", yaxis_title="Cumulative Net Advances",
         height=340, **PLOTLY_LAYOUT,
     )

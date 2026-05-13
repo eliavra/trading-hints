@@ -142,19 +142,15 @@ def _fetch_tv_breadth(tickers: tuple[str, ...]) -> _TvBreadthSnapshot:
 # A/D Line — needs historical data, still uses yfinance (cached separately)
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=900)
-def _fetch_ad_line_data() -> tuple[list[float], list[str], str]:
+def _fetch_ad_line_data() -> dict[str, dict]:
     tickers = get_sp500_tickers()
-    spy = yf.download("SPY", period="6mo", interval="1d", progress=False)
+    spy = yf.download("SPY", period="2y", interval="1d", progress=False)
     if spy.empty:
-        return [], [], "N/A"
+        return {}
 
-    etf_tickers = ["SPY", "RSP"]
-    df = yf.download(etf_tickers, period="6mo", interval="1d", group_by="ticker", progress=False)
-
-    # Use full S&P download only if we already have it, otherwise use SPY A/D proxy
     # For speed: compute from SPY daily advancing/declining via sector ETFs
     all_etfs = [s[1] for s in SECTORS] + ["SPY"]
-    df = yf.download(all_etfs, period="6mo", interval="1d", group_by="ticker", progress=False)
+    df = yf.download(all_etfs, period="2y", interval="1d", group_by="ticker", progress=False)
 
     closes: dict[str, pd.Series] = {}
     for etf in all_etfs:
@@ -168,25 +164,38 @@ def _fetch_ad_line_data() -> tuple[list[float], list[str], str]:
             continue
 
     if not closes:
-        return [], [], "N/A"
+        return {}
 
     combined = pd.DataFrame(closes)
     daily_change = combined.diff()
     advancing = (daily_change > 0).sum(axis=1)
     declining = (daily_change < 0).sum(axis=1)
     net_advances = advancing - declining
-    cumulative_ad = net_advances.cumsum().dropna()
+    
+    results = {}
+    periods = {"1M": 21, "3M": 63, "6M": 126, "1Y": 252, "2Y": 504}
+    
+    for period, days in periods.items():
+        period_net = net_advances.tail(days)
+        if len(period_net) > 5:
+            # We want to start the cumulative sum from the beginning of this period
+            cumulative_ad = period_net.iloc[1:].cumsum()
+            ad_values = cumulative_ad.tolist()
+            ad_dates = [d.strftime("%Y-%m-%d") for d in cumulative_ad.index]
+            
+            sma10 = cumulative_ad.rolling(10).mean()
+            if len(sma10.dropna()) >= 5:
+                trend = "RISING" if float(sma10.iloc[-1]) > float(sma10.iloc[-5]) else "FALLING"
+            else:
+                trend = "N/A"
+                
+            results[period] = {
+                "ad_line": ad_values,
+                "ad_dates": ad_dates,
+                "trend": trend
+            }
 
-    ad_values = cumulative_ad.tolist()
-    ad_dates = [d.strftime("%Y-%m-%d") for d in cumulative_ad.index]
-
-    sma10 = cumulative_ad.rolling(10).mean()
-    if len(sma10.dropna()) >= 5:
-        trend = "RISING" if float(sma10.iloc[-1]) > float(sma10.iloc[-5]) else "FALLING"
-    else:
-        trend = "N/A"
-
-    return ad_values, ad_dates, trend
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +303,7 @@ def compute_market_breadth() -> MarketBreadth:
 
     fg = _compute_fear_greed(sma20, sma50, sma200, nh_nl, vol_ratio)
     vix = _fetch_vix()
-    ad_values, ad_dates, ad_trend = _fetch_ad_line_data()
+    ad_data = _fetch_ad_line_data()
 
     sig20, act20 = _breadth_signal_sma20(sma20)
     sig50, act50 = _breadth_signal_sma50(sma50)
@@ -302,7 +311,9 @@ def compute_market_breadth() -> MarketBreadth:
     sig_nh, act_nh = _breadth_signal_nh_nl(nh_nl)
     sig_vol, act_vol = _breadth_signal_volume(vol_ratio)
     sig_vix, act_vix = _vix_signal(vix)
-    sig_ad, act_ad = _ad_line_signal(ad_trend)
+    
+    trend_6m = ad_data.get("6M", {}).get("trend", "N/A")
+    sig_ad, act_ad = _ad_line_signal(trend_6m)
 
     fg_signal = Signal.OVERBOUGHT if fg > 75 else (Signal.OVERSOLD if fg < 25 else Signal.NEUTRAL)
     fg_action = (
@@ -319,7 +330,7 @@ def compute_market_breadth() -> MarketBreadth:
         BreadthIndicator("Volume Breadth (Up vs Down)", vol_ratio, sig_vol, act_vol),
         BreadthIndicator("Fear / Greed Proxy", fg, fg_signal, fg_action),
         BreadthIndicator("VIX (Fear Gauge)", vix, sig_vix, act_vix),
-        BreadthIndicator("A/D Line Trend (10d)", ad_trend, sig_ad, act_ad),
+        BreadthIndicator("A/D Line Trend (6M)", trend_6m, sig_ad, act_ad),
     ]
 
     return MarketBreadth(
@@ -330,9 +341,7 @@ def compute_market_breadth() -> MarketBreadth:
         volume_breadth_ratio=vol_ratio,
         fear_greed_score=fg,
         vix=vix,
-        ad_line=ad_values,
-        ad_line_dates=ad_dates,
-        ad_line_trend=ad_trend,
+        ad_data=ad_data,
         indicators=indicators,
     )
 
