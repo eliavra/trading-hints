@@ -91,3 +91,20 @@ with col2:
             fig.update_layout(**custom_layout)
             
             st.plotly_chart(fig, use_container_width=True)
+            
+            st.markdown(f"<div style='margin-top:1.5rem;font-weight:700;color:{SLATE_800};margin-bottom:.5rem'>Unusual Flow Data (Top 10 by Vol/OI)</div>", unsafe_allow_html=True)
+            
+            # Format the dataframe for display
+            disp_df = df[['Ticker', 'Net_Premium', 'Vol_OI_Ratio', 'Total_Volume', 'Total_OI']].copy()
+            
+            # Sort descending by Vol_OI_Ratio for the table
+            disp_df = disp_df.sort_values(by='Vol_OI_Ratio', ascending=False)
+            
+            styled_df = disp_df.style.format({
+                'Net_Premium': "${:,.0f}",
+                'Vol_OI_Ratio': "{:.2f}x",
+                'Total_Volume': "{:,.0f}",
+                'Total_OI': "{:,.0f}"
+            }).map(lambda x: 'color: #22c55e; font-weight: 600' if x > 0 else 'color: #ef4444; font-weight: 600', subset=['Net_Premium'])
+            
+            st.dataframe(styled_df, use_container_width=True, hide_index=True)
