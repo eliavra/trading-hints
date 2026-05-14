@@ -530,15 +530,37 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
             for exp in exps[:max_expirations]:
                 chain = tkr.option_chain(exp)
                 
+                # Determine the most recent active trading day across calls and puts
+                recent_trade = None
                 if not chain.calls.empty:
-                    c_vol = chain.calls['volume'].fillna(0)
-                    c_lp = chain.calls['lastPrice'].fillna(0)
+                    recent_trade = chain.calls['lastTradeDate'].max()
+                if not chain.puts.empty:
+                    p_recent = chain.puts['lastTradeDate'].max()
+                    if recent_trade is None or p_recent > recent_trade:
+                        recent_trade = p_recent
+                        
+                if recent_trade is None:
+                    continue
+                    
+                recent_date_str = recent_trade.strftime('%Y-%m-%d')
+                
+                if not chain.calls.empty:
+                    calls = chain.calls
+                    calls['tradeDateOnly'] = calls['lastTradeDate'].dt.strftime('%Y-%m-%d')
+                    today_calls = calls[calls['tradeDateOnly'] == recent_date_str]
+                    
+                    c_vol = today_calls['volume'].fillna(0)
+                    c_lp = today_calls['lastPrice'].fillna(0)
                     call_prem += (c_vol * c_lp * 100).sum()
                     total_vol += c_vol.sum()
                     
                 if not chain.puts.empty:
-                    p_vol = chain.puts['volume'].fillna(0)
-                    p_lp = chain.puts['lastPrice'].fillna(0)
+                    puts = chain.puts
+                    puts['tradeDateOnly'] = puts['lastTradeDate'].dt.strftime('%Y-%m-%d')
+                    today_puts = puts[puts['tradeDateOnly'] == recent_date_str]
+                    
+                    p_vol = today_puts['volume'].fillna(0)
+                    p_lp = today_puts['lastPrice'].fillna(0)
                     put_prem += (p_vol * p_lp * 100).sum()
                     total_vol += p_vol.sum()
                     
