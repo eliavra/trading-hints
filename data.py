@@ -525,6 +525,7 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
             call_prem = 0.0
             put_prem = 0.0
             total_vol = 0
+            total_oi = 0
             
             # Scan only near-term expirations to keep dashboard fast
             for exp in exps[:max_expirations]:
@@ -551,8 +552,10 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
                     
                     c_vol = today_calls['volume'].fillna(0)
                     c_lp = today_calls['lastPrice'].fillna(0)
+                    c_oi = today_calls['openInterest'].fillna(0)
                     call_prem += (c_vol * c_lp * 100).sum()
                     total_vol += c_vol.sum()
+                    total_oi += c_oi.sum()
                     
                 if not chain.puts.empty:
                     puts = chain.puts
@@ -561,16 +564,22 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
                     
                     p_vol = today_puts['volume'].fillna(0)
                     p_lp = today_puts['lastPrice'].fillna(0)
+                    p_oi = today_puts['openInterest'].fillna(0)
                     put_prem += (p_vol * p_lp * 100).sum()
                     total_vol += p_vol.sum()
+                    total_oi += p_oi.sum()
                     
             net_prem = call_prem - put_prem
+            vol_oi_ratio = total_vol / total_oi if total_oi > 0 else 0
+            
             return {
                 "Ticker": sym, 
                 "Net_Premium": net_prem,
                 "Call_Premium": call_prem,
                 "Put_Premium": put_prem,
-                "Total_Volume": total_vol
+                "Total_Volume": total_vol,
+                "Total_OI": total_oi,
+                "Vol_OI_Ratio": vol_oi_ratio
             }
         except Exception:
             return None
