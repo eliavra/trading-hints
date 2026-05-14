@@ -57,8 +57,9 @@ with col2:
         # Filter based on absolute premium meeting the dropdown threshold
         df = df[df['Net_Premium'].abs() >= min_premium]
         
-        # Rank by Volume/OI Ratio to find true unusual options activity independent of market cap
-        df = df.nlargest(10, 'Vol_OI_Ratio')
+        # Rank by Absolute Net Premium to capture the largest total whale impacts
+        df['Abs_Net_Premium'] = df['Net_Premium'].abs()
+        df = df.nlargest(20, 'Abs_Net_Premium')
         
         # Sort by Net_Premium for displaying the chart correctly (least to most for Plotly horizontal bars)
         df = df.sort_values(by='Net_Premium', ascending=True)
@@ -86,19 +87,20 @@ with col2:
                 margin=dict(l=0, r=40, t=20, b=0),
                 xaxis=dict(showgrid=True, gridcolor='#e2e8f0', zerolinecolor='#94a3b8', title=""),
                 yaxis=dict(showgrid=False),
-                height=450
+                height=600
             )
             fig.update_layout(**custom_layout)
             
             st.plotly_chart(fig, use_container_width=True)
             
-            st.markdown(f"<div style='margin-top:1.5rem;font-weight:700;color:{SLATE_800};margin-bottom:.5rem'>Unusual Flow Data (Top 10 by Vol/OI)</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='margin-top:1.5rem;font-weight:700;color:{SLATE_800};margin-bottom:.5rem'>Unusual Flow Data (Top 20 by Net Impact)</div>", unsafe_allow_html=True)
             
             # Format the dataframe for display
-            disp_df = df[['Ticker', 'Net_Premium', 'Vol_OI_Ratio', 'Total_Volume', 'Total_OI']].copy()
+            disp_df = df[['Ticker', 'Net_Premium', 'Total_Volume', 'Total_OI', 'Vol_OI_Ratio']].copy()
             
-            # Sort descending by Vol_OI_Ratio for the table
-            disp_df = disp_df.sort_values(by='Vol_OI_Ratio', ascending=False)
+            # Sort descending by Abs_Net_Premium for the table
+            disp_df['Abs_Net_Premium'] = disp_df['Net_Premium'].abs()
+            disp_df = disp_df.sort_values(by='Abs_Net_Premium', ascending=False).drop(columns=['Abs_Net_Premium'])
             
             styled_df = disp_df.style.format({
                 'Net_Premium': "${:,.0f}",
