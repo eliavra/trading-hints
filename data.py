@@ -511,27 +511,50 @@ def compute_seasonality(ticker: str) -> SeasonalityResult:
 @st.cache_data(ttl=300)
 def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.DataFrame:
     """
-    Scans the nearest expirations for a list of tickers to calculate Net Premium and Total Volume.
-    Net Premium = Total Call Premium - Total Put Premium
-    Premium = Volume * Last Price * 100
+    Scans options chains to approximate Unusual Whales Net Premium logic.
+    Bullish Flow = Calls bought at Ask + Puts sold at Bid
+    Bearish Flow = Puts bought at Ask + Calls sold at Bid
+    (Proxy uses lastPrice vs mid-price)
     """
+    def _process_chain(df, is_call, recent_date_str):
+        if df.empty: return 0.0, 0.0, 0, 0
+        df = df.copy()
+        df['tradeDateOnly'] = df['lastTradeDate'].dt.strftime('%Y-%m-%d')
+        today_df = df[df['tradeDateOnly'] == recent_date_str].copy()
+        if today_df.empty: return 0.0, 0.0, 0, 0
+        
+        today_df['mid'] = (today_df['bid'] + today_df['ask']) / 2
+        today_df['prem'] = today_df['volume'].fillna(0) * today_df['lastPrice'].fillna(0) * 100
+        
+        bullish = 0.0
+        bearish = 0.0
+        vol = today_df['volume'].sum()
+        oi = today_df['openInterest'].sum()
+        
+        for _, row in today_df.iterrows():
+            if row['lastPrice'] > row['mid']:
+                if is_call: bullish += row['prem']
+                else: bearish += row['prem']
+            elif row['lastPrice'] < row['mid']:
+                if is_call: bearish += row['prem']
+                else: bullish += row['prem']
+                
+        return bullish, bearish, vol, oi
+
     def _fetch_flow(sym):
         try:
             tkr = yf.Ticker(sym)
             exps = tkr.options
-            if not exps:
-                return None
+            if not exps: return None
             
-            call_prem = 0.0
-            put_prem = 0.0
+            total_bullish = 0.0
+            total_bearish = 0.0
             total_vol = 0
             total_oi = 0
             
-            # Scan only near-term expirations to keep dashboard fast
             for exp in exps[:max_expirations]:
                 chain = tkr.option_chain(exp)
                 
-                # Determine the most recent active trading day across calls and puts
                 recent_trade = None
                 if not chain.calls.empty:
                     recent_trade = chain.calls['lastTradeDate'].max()
@@ -540,43 +563,25 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
                     if recent_trade is None or p_recent > recent_trade:
                         recent_trade = p_recent
                         
-                if recent_trade is None:
-                    continue
-                    
+                if recent_trade is None: continue
                 recent_date_str = recent_trade.strftime('%Y-%m-%d')
                 
-                if not chain.calls.empty:
-                    calls = chain.calls
-                    calls['tradeDateOnly'] = calls['lastTradeDate'].dt.strftime('%Y-%m-%d')
-                    today_calls = calls[calls['tradeDateOnly'] == recent_date_str]
-                    
-                    c_vol = today_calls['volume'].fillna(0)
-                    c_lp = today_calls['lastPrice'].fillna(0)
-                    c_oi = today_calls['openInterest'].fillna(0)
-                    call_prem += (c_vol * c_lp * 100).sum()
-                    total_vol += c_vol.sum()
-                    total_oi += c_oi.sum()
-                    
-                if not chain.puts.empty:
-                    puts = chain.puts
-                    puts['tradeDateOnly'] = puts['lastTradeDate'].dt.strftime('%Y-%m-%d')
-                    today_puts = puts[puts['tradeDateOnly'] == recent_date_str]
-                    
-                    p_vol = today_puts['volume'].fillna(0)
-                    p_lp = today_puts['lastPrice'].fillna(0)
-                    p_oi = today_puts['openInterest'].fillna(0)
-                    put_prem += (p_vol * p_lp * 100).sum()
-                    total_vol += p_vol.sum()
-                    total_oi += p_oi.sum()
-                    
-            net_prem = call_prem - put_prem
+                c_bull, c_bear, c_vol, c_oi = _process_chain(chain.calls, True, recent_date_str)
+                p_bull, p_bear, p_vol, p_oi = _process_chain(chain.puts, False, recent_date_str)
+                
+                total_bullish += c_bull + p_bull
+                total_bearish += c_bear + p_bear
+                total_vol += c_vol + p_vol
+                total_oi += c_oi + p_oi
+                
+            net_prem = total_bullish - total_bearish
             vol_oi_ratio = total_vol / total_oi if total_oi > 0 else 0
             
             return {
                 "Ticker": sym, 
                 "Net_Premium": net_prem,
-                "Call_Premium": call_prem,
-                "Put_Premium": put_prem,
+                "Bullish_Premium": total_bullish,
+                "Bearish_Premium": total_bearish,
                 "Total_Volume": total_vol,
                 "Total_OI": total_oi,
                 "Vol_OI_Ratio": vol_oi_ratio
@@ -587,8 +592,7 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         for res in executor.map(_fetch_flow, tickers):
-            if res:
-                results.append(res)
+            if res: results.append(res)
             
     df = pd.DataFrame(results)
     if not df.empty:
