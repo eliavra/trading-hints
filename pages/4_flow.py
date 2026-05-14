@@ -57,8 +57,10 @@ with col2:
         # Filter based on absolute premium meeting the dropdown threshold
         df = df[df['Net_Premium'].abs() >= min_premium]
         
-        # Take the top 10 by extreme total option volume
-        df = df.nlargest(10, 'Total_Volume')
+        # Rank by Absolute Net Premium to find true directional whale flows 
+        # (Ranking by raw volume just returns TSLA, NVDA, AAPL every time because they are mega-caps)
+        df['Abs_Net_Premium'] = df['Net_Premium'].abs()
+        df = df.nlargest(10, 'Abs_Net_Premium')
         
         # Sort by Net_Premium for displaying the chart correctly (least to most for Plotly horizontal bars)
         df = df.sort_values(by='Net_Premium', ascending=True)
