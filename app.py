@@ -9,8 +9,9 @@ st.set_page_config(page_title="Exposure Dashboard", layout="wide", initial_sideb
 page_sentiment = st.Page("pages/1_sentiment.py", title="Sentiment & Breadth", icon="📊")
 page_sectors = st.Page("pages/2_sectors.py", title="Sector Rotation", icon="🔄")
 page_seasonality = st.Page("pages/3_seasonality.py", title="Seasonality Hunter", icon="🏹")
+page_flow = st.Page("pages/4_flow.py", title="Institutional Flow", icon="🐋")
 
-pg = st.navigation([page_sentiment, page_sectors, page_seasonality])
+pg = st.navigation([page_sentiment, page_sectors, page_seasonality, page_flow])
 
 # Global Sidebar
 with st.sidebar:
