@@ -486,3 +486,55 @@ def compute_seasonality(ticker: str) -> SeasonalityResult:
         current_month=current_month,
         signal=sig,
     )
+
+
+# ---------------------------------------------------------------------------
+# Options Flow Analysis (yfinance — nearest expirations)
+# ---------------------------------------------------------------------------
+@st.cache_data(ttl=300)
+def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.DataFrame:
+    """
+    Scans the nearest expirations for a list of tickers to calculate Net Premium.
+    Net Premium = Total Call Premium - Total Put Premium
+    Premium = Volume * Last Price * 100
+    """
+    results = []
+    
+    for sym in tickers:
+        try:
+            tkr = yf.Ticker(sym)
+            exps = tkr.options
+            if not exps:
+                continue
+            
+            call_prem = 0.0
+            put_prem = 0.0
+            
+            # Scan only near-term expirations to keep dashboard fast
+            for exp in exps[:max_expirations]:
+                chain = tkr.option_chain(exp)
+                
+                if not chain.calls.empty:
+                    c_vol = chain.calls['volume'].fillna(0)
+                    c_lp = chain.calls['lastPrice'].fillna(0)
+                    call_prem += (c_vol * c_lp * 100).sum()
+                    
+                if not chain.puts.empty:
+                    p_vol = chain.puts['volume'].fillna(0)
+                    p_lp = chain.puts['lastPrice'].fillna(0)
+                    put_prem += (p_vol * p_lp * 100).sum()
+                    
+            net_prem = call_prem - put_prem
+            results.append({
+                "Ticker": sym, 
+                "Net_Premium": net_prem,
+                "Call_Premium": call_prem,
+                "Put_Premium": put_prem
+            })
+        except Exception:
+            continue
+            
+    df = pd.DataFrame(results)
+    if not df.empty:
+        df = df.sort_values(by="Net_Premium", ascending=True)
+    return df
