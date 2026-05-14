@@ -77,7 +77,7 @@ with col2:
                 orientation='h',
                 marker_color=df['Color'],
                 text=[f"${x/1e6:.1f}M" for x in df['Net_Premium']],
-                textposition='outside',
+                textposition='auto',
                 cliponaxis=False
             ))
 
