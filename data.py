@@ -4,6 +4,7 @@ import calendar
 from dataclasses import dataclass
 from datetime import datetime
 from io import StringIO
+import concurrent.futures
 
 import pandas as pd
 import requests
@@ -43,7 +44,7 @@ _TV_HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 
 # ---------------------------------------------------------------------------
-# S&P 500 ticker list (Wikipedia, 1hr cache)
+# S&P 500 & NASDAQ 100 ticker lists (Wikipedia, 5m cache)
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def get_sp500_tickers() -> list[str]:
@@ -56,6 +57,22 @@ def get_sp500_tickers() -> list[str]:
         resp.raise_for_status()
         tables = pd.read_html(StringIO(resp.text))
         tickers = tables[0]["Symbol"].tolist()
+        return [t.replace(".", "-") for t in tickers]
+    except Exception:
+        return _FALLBACK_TICKERS
+
+
+@st.cache_data(ttl=300)
+def get_nasdaq100_tickers() -> list[str]:
+    try:
+        resp = requests.get(
+            "https://en.wikipedia.org/wiki/NASDAQ-100",
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        tables = pd.read_html(StringIO(resp.text), match="Ticker")
+        tickers = tables[0]["Ticker"].tolist()
         return [t.replace(".", "-") for t in tickers]
     except Exception:
         return _FALLBACK_TICKERS
@@ -494,21 +511,20 @@ def compute_seasonality(ticker: str) -> SeasonalityResult:
 @st.cache_data(ttl=300)
 def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.DataFrame:
     """
-    Scans the nearest expirations for a list of tickers to calculate Net Premium.
+    Scans the nearest expirations for a list of tickers to calculate Net Premium and Total Volume.
     Net Premium = Total Call Premium - Total Put Premium
     Premium = Volume * Last Price * 100
     """
-    results = []
-    
-    for sym in tickers:
+    def _fetch_flow(sym):
         try:
             tkr = yf.Ticker(sym)
             exps = tkr.options
             if not exps:
-                continue
+                return None
             
             call_prem = 0.0
             put_prem = 0.0
+            total_vol = 0
             
             # Scan only near-term expirations to keep dashboard fast
             for exp in exps[:max_expirations]:
@@ -518,21 +534,30 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
                     c_vol = chain.calls['volume'].fillna(0)
                     c_lp = chain.calls['lastPrice'].fillna(0)
                     call_prem += (c_vol * c_lp * 100).sum()
+                    total_vol += c_vol.sum()
                     
                 if not chain.puts.empty:
                     p_vol = chain.puts['volume'].fillna(0)
                     p_lp = chain.puts['lastPrice'].fillna(0)
                     put_prem += (p_vol * p_lp * 100).sum()
+                    total_vol += p_vol.sum()
                     
             net_prem = call_prem - put_prem
-            results.append({
+            return {
                 "Ticker": sym, 
                 "Net_Premium": net_prem,
                 "Call_Premium": call_prem,
-                "Put_Premium": put_prem
-            })
+                "Put_Premium": put_prem,
+                "Total_Volume": total_vol
+            }
         except Exception:
-            continue
+            return None
+
+    results = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        for res in executor.map(_fetch_flow, tickers):
+            if res:
+                results.append(res)
             
     df = pd.DataFrame(results)
     if not df.empty:

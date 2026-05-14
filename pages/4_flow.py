@@ -2,17 +2,24 @@ import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
 from ui import load_css, TEAL, SLATE_800, SLATE_600, PLOTLY_LAYOUT
-from data import compute_options_flow
+from data import compute_options_flow, get_sp500_tickers, get_nasdaq100_tickers
 
 load_css()
 
 st.title("Institutional Flow Analysis")
 
-WATCHLIST = ['SPY', 'QQQ', 'NVDA', 'TSLA', 'AAPL', 'AMD', 'META', 'MSFT', 'AMZN', 'GOOGL', 'BRK-B', 'SMCI', 'PLTR', 'AVGO', 'COIN']
-
 with st.sidebar:
     st.markdown(f"<div style='font-weight:700;color:{SLATE_800};margin-bottom:0.5rem'>Flow Filters</div>", unsafe_allow_html=True)
-    min_premium = st.slider("Min Net Impact Threshold ($M)", 0.0, 100.0, 5.0, step=1.0) * 1_000_000
+    market_view = st.selectbox("Select Index", ["S&P 500", "NASDAQ 100"])
+    # Dropdown for threshold
+    threshold_options = [0.0, 1.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+    min_premium_val = st.selectbox(
+        "Min Net Impact Threshold", 
+        threshold_options, 
+        index=0, 
+        format_func=lambda x: f"${x}M"
+    )
+    min_premium = min_premium_val * 1_000_000
 
 col1, col2 = st.columns([1, 1])
 
@@ -22,8 +29,7 @@ with col1:
         <span class="material-symbols-rounded" style="font-size:3rem; color:#94a3b8; margin-bottom:1rem;">query_stats</span>
         <div style="font-weight:700;color:{SLATE_800};margin-bottom:.5rem">Live Options Flow</div>
         <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6">
-            Analyzing near-term options chain for 15 mega-cap & high-beta targets. <br>
-            <i>(SPY, QQQ, NVDA, TSLA, AAPL, etc.)</i>
+            Analyzing near-term options chain for the full index to find the top 10 extreme option volume targets.<br>
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -36,17 +42,29 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
     
-    with st.spinner("Scanning live option chains (this takes ~10-15 seconds)..."):
-        df = compute_options_flow(WATCHLIST, max_expirations=1)
+    # Get tickers based on selection
+    if market_view == "S&P 500":
+        watch_tickers = get_sp500_tickers()
+    else:
+        watch_tickers = get_nasdaq100_tickers()
+
+    with st.spinner(f"Scanning live option chains for {len(watch_tickers)} tickers (takes ~15 seconds)..."):
+        df = compute_options_flow(watch_tickers, max_expirations=1)
     
-    if df.empty:
+    if df is None or df.empty:
         st.warning("No options flow data available at this time.")
     else:
-        # Filter based on absolute premium meeting the slider threshold
-        df = df[df['Net_Premium'].abs() >= min_premium].sort_values(by='Net_Premium', ascending=True)
+        # Filter based on absolute premium meeting the dropdown threshold
+        df = df[df['Net_Premium'].abs() >= min_premium]
+        
+        # Take the top 10 by extreme total option volume
+        df = df.nlargest(10, 'Total_Volume')
+        
+        # Sort by Net_Premium for displaying the chart correctly (least to most for Plotly horizontal bars)
+        df = df.sort_values(by='Net_Premium', ascending=True)
         
         if df.empty:
-            st.info(f"No tickers meet the ${min_premium/1e6:.1f}M threshold.")
+            st.info(f"No tickers meet the ${min_premium_val}M threshold.")
         else:
             # Apply SaaS unified colors
             df['Color'] = ['#ef4444' if x < 0 else '#22c55e' for x in df['Net_Premium']]
