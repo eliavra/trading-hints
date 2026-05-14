@@ -45,7 +45,7 @@ _TV_HEADERS = {"User-Agent": "Mozilla/5.0"}
 # ---------------------------------------------------------------------------
 # S&P 500 ticker list (Wikipedia, 1hr cache)
 # ---------------------------------------------------------------------------
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=300)
 def get_sp500_tickers() -> list[str]:
     try:
         resp = requests.get(
@@ -76,7 +76,7 @@ class _TvBreadthSnapshot:
     total: int
 
 
-@st.cache_data(ttl=900)
+@st.cache_data(ttl=300)
 def _fetch_tv_breadth(tickers: tuple[str, ...]) -> _TvBreadthSnapshot:
     tv_tickers = []
     for t in tickers:
@@ -141,7 +141,7 @@ def _fetch_tv_breadth(tickers: tuple[str, ...]) -> _TvBreadthSnapshot:
 # ---------------------------------------------------------------------------
 # A/D Line — needs historical data, still uses yfinance (cached separately)
 # ---------------------------------------------------------------------------
-@st.cache_data(ttl=900)
+@st.cache_data(ttl=300)
 def _fetch_ad_line_data() -> dict[str, dict]:
     tickers = get_sp500_tickers()
     spy = yf.download("SPY", period="2y", interval="1d", progress=False)
@@ -201,6 +201,7 @@ def _fetch_ad_line_data() -> dict[str, dict]:
 # ---------------------------------------------------------------------------
 # VIX
 # ---------------------------------------------------------------------------
+@st.cache_data(ttl=300)
 def _fetch_vix() -> float:
     try:
         vix_df = yf.download("^VIX", period="5d", interval="1d", progress=False)
@@ -291,6 +292,7 @@ def _compute_fear_greed(sma20: float, sma50: float, sma200: float, nh_nl: int, v
 # ---------------------------------------------------------------------------
 # Main breadth function
 # ---------------------------------------------------------------------------
+@st.cache_data(ttl=300)
 def compute_market_breadth() -> MarketBreadth:
     tickers = get_sp500_tickers()
     snap = _fetch_tv_breadth(tuple(tickers))
@@ -355,7 +357,7 @@ def _perf_at_offset(close: pd.Series, offset: int) -> float:
     return (float(close.iloc[-1]) / float(close.iloc[-1 - offset]) - 1)
 
 
-@st.cache_data(ttl=900)
+@st.cache_data(ttl=300)
 def compute_sector_data() -> list[SectorData]:
     etfs = [s[1] for s in SECTORS]
 
@@ -422,7 +424,7 @@ def compute_sector_data() -> list[SectorData]:
 # ---------------------------------------------------------------------------
 # Seasonality (yfinance — 10yr weekly, per ticker)
 # ---------------------------------------------------------------------------
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=300)
 def compute_seasonality(ticker: str) -> SeasonalityResult:
     df = yf.download(ticker, period="10y", interval="1wk", progress=False)
     if df.empty:
