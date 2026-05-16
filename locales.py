@@ -102,6 +102,10 @@ LOCALES = {
         "pct_sma20": "% > SMA 20",
         "pct_sma50": "% > SMA 50",
         "pct_sma200": "% > SMA 200",
+        "nh_nl_net": "New Highs - New Lows (Net)",
+        "nh_nl_help": "Daily net count of S&P 500 stocks hitting 52-week highs vs 52-week lows.",
+        "volume_breadth": "Volume Breadth (Up vs Down)",
+        "vol_breadth_help": "Ratio of volume flowing into advancing stocks vs declining stocks. >1.0 indicates buying pressure.",
         "mco_desc": "Measures the difference between 19-day and 39-day EMA of advancing minus declining issues.",
         "hl_index_desc": "10-day SMA of Record High Percent (New Highs / (New Highs + New Lows)).",
         "vix_term_structure_desc": "In a healthy market, short-term volatility (VIX) is lower than long-term volatility (VIX3M/VIX6M) because the future is less certain. This is called Contango. When short-term VIX spikes above 3M VIX, the market is in Backwardation.",
@@ -139,6 +143,9 @@ LOCALES = {
         "feedback": "Feedback",
         "feedback_desc": "We value your feedback! Please report bugs or suggest features via the GitHub repository or contact the development team.",
         "about_desc": "Exposure Manager is a quantitative financial dashboard designed to assist traders and portfolio managers in making data-driven exposure decisions.",
+        "group_trend": "Trend Participation (MAs)",
+        "group_internals": "Market Internals & Momentum",
+        "group_risk": "Volatility & Risk Metrics",
     },
     "he": {
         "app_title": "מנהל חשיפה",
@@ -282,6 +289,9 @@ LOCALES = {
         "feedback": "משוב",
         "feedback_desc": "אנו מעריכים את המשוב שלך! אנא דווח על באגים או הצע תכונות חדשות דרך מאגר ה-GitHub או צור קשר עם צוות הפיתוח.",
         "about_desc": "מנהל חשיפה הוא לוח בקרה פיננסי כמותי שנועד לסייע לסוחרים ומנהלי תיקים לקבל החלטות חשיפה מבוססות נתונים.",
+        "group_trend": "השתתפות במגמה (ממוצעים נעים)",
+        "group_internals": "רוחב שוק ומומנטום פנימי",
+        "group_risk": "מדדי תנודתיות וסיכון",
     }
 }
 

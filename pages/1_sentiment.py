@@ -13,34 +13,34 @@ st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 TIMEFRAME_CONFIG = {
     t("short_term"): {
         "field": "pct_above_sma20",
-        "title": t("% Stocks Above SMA 20"),
+        "title": t("pct_sma20"),
         "low": 20, "high": 85,
         "calc": t("Percentage of S&P 500 stocks trading above their 20-day Simple Moving Average."),
         "usage": t("Above 85% — overbought, reduce longs / tighten stops. Below 20% — oversold, look for long entries. Between 70-85% — be selective."),
     },
     t("medium_term"): {
         "field": "pct_above_sma50",
-        "title": t("% Stocks Above SMA 50"),
+        "title": t("pct_sma50"),
         "low": 30, "high": 85,
         "calc": t("Percentage of S&P 500 stocks trading above their 50-day Simple Moving Average."),
         "usage": t("The classic range for significant corrections. 85% is a red light — reduce exposure. Below 30% — green light, increase exposure."),
     },
     t("long_term"): {
         "field": "pct_above_sma200",
-        "title": t("% Stocks Above SMA 200"),
+        "title": t("pct_sma200"),
         "low": 40, "high": 80,
         "calc": t("Percentage of S&P 500 stocks trading above their 200-day Simple Moving Average."),
         "usage": t("Defines Bull vs Bear market. Above 80% — strong bull, stay long. Below 40% — weak / bear, go defensive. Below 60% — tighten stops."),
     },
 }
 
-with st.spinner(t("Loading S&P 500 data...")):
+with st.spinner(t("loading_sp500")):
     breadth = compute_market_breadth()
 
 mc1, mc2, mc3, mc4, mc5 = st.columns(5)
-mc1.metric(t("% > SMA 20"), f"{breadth.pct_above_sma20:.1f}%", help=t("pct_above_sma20_help"))
-mc2.metric(t("% > SMA 50"), f"{breadth.pct_above_sma50:.1f}%", help=t("pct_above_sma50_help"))
-mc3.metric(t("% > SMA 200"), f"{breadth.pct_above_sma200:.1f}%", help=t("pct_above_sma200_help"))
+mc1.metric(t("pct_sma20"), f"{breadth.pct_above_sma20:.1f}%", help=t("pct_above_sma20_help"))
+mc2.metric(t("pct_sma50"), f"{breadth.pct_above_sma50:.1f}%", help=t("pct_above_sma50_help"))
+mc3.metric(t("pct_sma200"), f"{breadth.pct_above_sma200:.1f}%", help=t("pct_above_sma200_help"))
 mc4.metric(t("fear_greed_score"), f"{breadth.fear_greed_score:.0f}/100", help=t("fear_greed_score_help"))
 mc5.metric(t("vix"), f"{breadth.vix:.1f}", help=t("vix_help"))
 
@@ -105,40 +105,50 @@ with sma_col:
     </div>
     """, unsafe_allow_html=True)
 
-# --- Full indicators grid ---
-st.markdown(f"<h3 style='color:{SLATE_800};margin-top:2.5rem;margin-bottom:1.5rem;'>{t('all_indicators')}</h3>", unsafe_allow_html=True)
+# --- Categorized indicators grid ---
+st.markdown(f"<h3 style='color:{SLATE_800};margin-top:2.5rem;margin-bottom:1rem;'>{t('all_indicators')}</h3>", unsafe_allow_html=True)
 
-# Grid layout: 3 indicators per row
-cols = st.columns(3)
-for i, ind in enumerate(breadth.indicators):
-    with cols[i % 3]:
-        sv = ind.signal.value
-        val_str = str(ind.value) if not isinstance(ind.value, float) else f"{ind.value:.2f}"
-        
-        # Determine color for the value
-        c = signal_color(ind.signal)
-        
-        st.markdown(f"""
-        <div class="card" style="margin-bottom:1rem; min-height: 200px; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-                <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600; margin-bottom:0.25rem;">{t(ind.name)}</div>
-                <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:0.75rem;">
-                    <span style="font-size:1.8rem; font-weight:700; color:{SLATE_800};">{val_str}</span>
-                    <span class="signal-badge" style="background:{c['bg']}; color:{c['fg']}; font-size:0.65rem;">{t(sv)}</span>
+groups = {
+    "group_trend": [ind for ind in breadth.indicators if ind.group == "trend"],
+    "group_internals": [ind for ind in breadth.indicators if ind.group == "internals"],
+    "group_risk": [ind for ind in breadth.indicators if ind.group == "risk"],
+}
+
+for g_key, g_indicators in groups.items():
+    if not g_indicators: continue
+    
+    st.markdown(f"<div style='font-size:1.1rem; font-weight:700; color:{TEAL}; margin-top:1.5rem; margin-bottom:1rem; border-bottom: 2px solid #f1f5f9; padding-bottom:0.5rem;'>{t(g_key)}</div>", unsafe_allow_html=True)
+    
+    # Grid layout: 3 indicators per row
+    cols = st.columns(3)
+    for i, ind in enumerate(g_indicators):
+        with cols[i % 3]:
+            sv = ind.signal.value
+            val_str = str(ind.value) if not isinstance(ind.value, float) else f"{ind.value:.2f}"
+            c = signal_color(ind.signal)
+            
+            st.markdown(f"""
+            <div class="card" style="margin-bottom:1rem; min-height: 190px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600; margin-bottom:0.25rem;">{t(ind.name)}</div>
+                    <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:0.75rem;">
+                        <span style="font-size:1.6rem; font-weight:700; color:{SLATE_800};">{val_str}</span>
+                        <span class="signal-badge" style="background:{c['bg']}; color:{c['fg']}; font-size:0.65rem;">{t(sv)}</span>
+                    </div>
+                    <div style="font-size:0.85rem; color:{SLATE_600}; font-weight:600; line-height:1.4; margin-bottom:0.5rem;">{t(ind.action)}</div>
                 </div>
-                <div style="font-size:0.85rem; color:{SLATE_600}; font-weight:600; line-height:1.4; margin-bottom:0.5rem;">{t(ind.action)}</div>
+                <div style="font-size:0.72rem; color:#64748b; font-style:italic; border-top:1px solid #f1f5f9; padding-top:0.5rem;">
+                    {t(ind.description)}
+                </div>
             </div>
-            <div style="font-size:0.75rem; color:#64748b; font-style:italic; border-top:1px solid #f1f5f9; padding-top:0.5rem;">
-                {t(ind.description)}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
 # --- A/D Line chart ---
 if breadth.ad_data:
-    ad_period = st.radio(t("ad_timeframe"), list(breadth.ad_data.keys()), index=2, horizontal=True) # default 6M
+    st.divider()
+    ad_period = st.radio(t("ad_timeframe"), [k for k in breadth.ad_data.keys() if k != "MCO"], index=2, horizontal=True) # default 6M
     current_ad = breadth.ad_data[ad_period]
     ad_line = current_ad["ad_line"]
     ad_dates = current_ad["ad_dates"]

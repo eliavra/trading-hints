@@ -34,6 +34,7 @@ class BreadthIndicator:
     signal: Signal
     action: str
     description: str = ""
+    group: str = "General"
 
 
 @dataclass

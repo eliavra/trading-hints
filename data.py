@@ -428,18 +428,18 @@ def _compute_market_breadth_logic() -> MarketBreadth:
     )
 
     indicators = [
-        BreadthIndicator("pct_sma20", sma20, sig20, act20, "pct_above_sma20_help"),
-        BreadthIndicator("pct_sma50", sma50, sig50, act50, "pct_above_sma50_help"),
-        BreadthIndicator("pct_sma200", sma200, sig200, act200, "pct_above_sma200_help"),
-        BreadthIndicator("nh_nl_net", nh_nl, sig_nh, act_nh, "nh_nl_help"),
-        BreadthIndicator("hl_index", hl_ratio, sig_hl, act_hl, "hl_index_desc"),
-        BreadthIndicator("volume_breadth", vol_ratio, sig_vol, act_vol, "vol_breadth_help"),
-        BreadthIndicator("mco", mco, sig_mco, act_mco, "mco_desc"),
-        BreadthIndicator("fear_greed_score", fg, fg_signal, fg_action, "fg_indicator_desc"),
-        BreadthIndicator("vix", vix, sig_vix, act_vix, "vix_help"),
-        BreadthIndicator("vix_term_structure", f"{vix:.1f} vs {vix_3m:.1f}", sig_term, act_term, "vix_term_structure_desc"),
-        BreadthIndicator("spy_atr", spy_atr_pct, sig_atr, act_atr, "spy_atr_help"),
-        BreadthIndicator("ad_trend", trend_6m, sig_ad, act_ad, "ad_trend_help"),
+        BreadthIndicator("pct_sma20", sma20, sig20, act20, "pct_above_sma20_help", "trend"),
+        BreadthIndicator("pct_sma50", sma50, sig50, act50, "pct_above_sma50_help", "trend"),
+        BreadthIndicator("pct_sma200", sma200, sig200, act200, "pct_above_sma200_help", "trend"),
+        BreadthIndicator("nh_nl_net", nh_nl, sig_nh, act_nh, "nh_nl_help", "internals"),
+        BreadthIndicator("hl_index", hl_ratio, sig_hl, act_hl, "hl_index_desc", "internals"),
+        BreadthIndicator("volume_breadth", vol_ratio, sig_vol, act_vol, "vol_breadth_help", "internals"),
+        BreadthIndicator("mco", mco, sig_mco, act_mco, "mco_desc", "internals"),
+        BreadthIndicator("ad_trend", trend_6m, sig_ad, act_ad, "ad_trend_help", "internals"),
+        BreadthIndicator("fear_greed_score", fg, fg_signal, fg_action, "fg_indicator_desc", "risk"),
+        BreadthIndicator("vix", vix, sig_vix, act_vix, "vix_help", "risk"),
+        BreadthIndicator("vix_term_structure", f"{vix:.1f} vs {vix_3m:.1f}", sig_term, act_term, "vix_term_structure_desc", "risk"),
+        BreadthIndicator("spy_atr", spy_atr_pct, sig_atr, act_atr, "spy_atr_help", "risk"),
     ]
 
     return MarketBreadth(
