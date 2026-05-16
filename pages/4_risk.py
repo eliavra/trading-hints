@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 from data import compute_market_breadth
-from ui import load_css, TEAL, SLATE_800, SLATE_600, PLOTLY_LAYOUT
+from ui import load_css, TEAL, SLATE_800, SLATE_600, PLOTLY_LAYOUT, create_gauge_chart
 
 load_css()
 
@@ -54,12 +54,23 @@ st.markdown(f"<h3 style='color:{SLATE_800};margin-top:2rem;'>Advanced Breadth Fi
 b1, b2 = st.columns(2)
 
 with b1:
+    mco_steps = [
+        dict(range=[-100, -50], color="#ef4444"),  # Oversold (Red)
+        dict(range=[-50, 0], color="#fca5a5"),     # Negative (Light Red)
+        dict(range=[0, 50], color="#86efac"),      # Positive (Light Green)
+        dict(range=[50, 100], color="#22c55e"),    # Overbought (Green)
+    ]
+    mco_gauge = create_gauge_chart(
+        value=breadth.mcclellan_osc,
+        title="McClellan Oscillator (MCO)",
+        steps=mco_steps, min_val=-100, max_val=100
+    )
+    st.plotly_chart(mco_gauge, use_container_width=True)
+    
     st.markdown(f"""
     <div class="card">
-        <div style="font-size:1.5rem;font-weight:700;color:{SLATE_800};margin-bottom:0.5rem">{breadth.mcclellan_osc:.1f}</div>
-        <div style="font-weight:700;color:{TEAL};margin-bottom:.5rem">McClellan Oscillator (MCO)</div>
-        <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6">
-            Measures the difference between 19-day and 39-day EMA of advancing minus declining issues. <br>
+        <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6;margin:0">
+            <b>Meaning:</b> Measures the difference between 19-day and 39-day EMA of advancing minus declining issues. <br>
             <i>Above +50: Overbought</i><br>
             <i>Below -50: Oversold</i>
         </p>
@@ -67,12 +78,23 @@ with b1:
     """, unsafe_allow_html=True)
 
 with b2:
+    hl_steps = [
+        dict(range=[0, 20], color="#ef4444"),    # Strong Bear (Red)
+        dict(range=[20, 50], color="#fca5a5"),   # Weak Bear (Light Red)
+        dict(range=[50, 80], color="#86efac"),   # Weak Bull (Light Green)
+        dict(range=[80, 100], color="#22c55e"),  # Strong Bull (Green)
+    ]
+    hl_gauge = create_gauge_chart(
+        value=breadth.high_low_ratio,
+        title="High-Low Index",
+        steps=hl_steps, min_val=0, max_val=100
+    )
+    st.plotly_chart(hl_gauge, use_container_width=True)
+    
     st.markdown(f"""
     <div class="card">
-        <div style="font-size:1.5rem;font-weight:700;color:{SLATE_800};margin-bottom:0.5rem">{breadth.high_low_ratio:.1f}</div>
-        <div style="font-weight:700;color:{TEAL};margin-bottom:.5rem">High-Low Index</div>
-        <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6">
-            10-day SMA of Record High Percent (New Highs / (New Highs + New Lows)). <br>
+        <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6;margin:0">
+            <b>Meaning:</b> 10-day SMA of Record High Percent (New Highs / (New Highs + New Lows)). <br>
             <i>Above 80: Strong Uptrend</i><br>
             <i>Below 20: Strong Downtrend</i>
         </p>

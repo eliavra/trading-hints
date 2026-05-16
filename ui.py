@@ -98,3 +98,28 @@ def signal_badge(sig: Signal) -> str:
 def style_signal_cell(val: str, cmap: dict[str, dict[str, str]]) -> str:
     c = cmap.get(val, SIGNAL_COLORS["yellow"])
     return f"background-color: {c['bg']}; color: {c['fg']}; font-weight: 700; border-radius: 4px"
+
+import plotly.graph_objects as go
+
+def create_gauge_chart(value: float, title: str, steps: list[dict], min_val: float, max_val: float, suffix: str = "", bar_color: str = "#1e293b") -> go.Figure:
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=value,
+        number={"suffix": suffix, "font": {"size": 40, "color": SLATE_800}},
+        title={"text": title, "font": {"size": 14, "color": SLATE_600}},
+        gauge=dict(
+            axis=dict(range=[min_val, max_val], tickwidth=1, tickcolor=SLATE_600),
+            bar=dict(color=bar_color, thickness=0.15),  # Thin needle-like bar
+            bgcolor="white",
+            steps=steps,
+        ),
+    ))
+    
+    # Use standard Plotly layout with transparent paper background
+    custom_layout = PLOTLY_LAYOUT.copy()
+    custom_layout.update(
+        margin=dict(t=50, b=20, l=30, r=30),
+        height=250
+    )
+    fig.update_layout(**custom_layout)
+    return fig
