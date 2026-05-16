@@ -46,6 +46,9 @@ st.markdown(f"<h3 style='color:{SLATE_800};margin-top:2rem;'>Core Sentiment</h3>
 fg_col, sma_col = st.columns(2)
 
 with fg_col:
+    # Spacer to align with the radio buttons in the right column
+    st.markdown("<div style='height: 70px;'></div>", unsafe_allow_html=True)
+    
     # 5-zone Fear & Greed gauge (matching standard infographic)
     fg_steps = [
         dict(range=[0, 20], color="#ef4444"),    # Extreme Fear (Red)
