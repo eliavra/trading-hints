@@ -44,9 +44,5 @@ with c1:
 
 with c2:
     with st.container(border=True):
-        st.page_link("pages/4_flow.py", label="**Institutional Flow**", icon="🐋")
-        st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>Monitor abnormal options volume and net premium imbalances targeting mega-cap stocks.</div>", unsafe_allow_html=True)
-
-    with st.container(border=True):
         st.page_link("pages/3_seasonality.py", label="**Seasonality Hunter**", icon="🏹")
         st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>Investigate 10-year historical win rates and expected returns for any ticker.</div>", unsafe_allow_html=True)
