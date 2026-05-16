@@ -15,13 +15,12 @@ _FALLBACK_TICKERS = [
     "V", "XOM", "JPM", "PG", "MA", "HD", "CVX", "LLY", "MRK", "ABBV",
 ]
 
-# --- Global In-Memory State ---
-if "GLOBAL_STATE" not in st.session_state:
-    st.session_state["GLOBAL_STATE"] = {
-        "data": {},
-        "last_updated": None,
-        "is_fetching": False
-    }
+# --- Global In-Memory State (Shared across ALL sessions) ---
+# We use a module-level dictionary instead of session_state so it is truly global.
+_GLOBAL_CACHE = {
+    "data": {},
+    "is_fetching": {}  # Per-key fetching state
+}
 
 # Reentrant Lock to allow nested calls to execute_managed_fetch without deadlocking
 _fetch_lock = threading.RLock()
@@ -107,45 +106,39 @@ def fetch_yf_option_chain(ticker: str, expiration: str):
 # ---------------------------------------------------------------------------
 def execute_managed_fetch(func, *args, **kwargs):
     """
-    Returns data from session state immediately. 
+    Returns data from global cache immediately. 
     Triggers a background refresh if data is stale (> 5 mins).
     Blocks only on the very first call.
     """
     key = f"{func.__name__}_{str(args)}_{str(kwargs)}"
     
-    if "GLOBAL_STATE" not in st.session_state:
-        st.session_state["GLOBAL_STATE"] = {"data": {}, "is_fetching": False}
-        
-    state = st.session_state["GLOBAL_STATE"]
-    cache = state["data"]
-    
     now = datetime.now()
-    entry = cache.get(key)
+    entry = _GLOBAL_CACHE["data"].get(key)
     
     if entry is None:
         # Initial block - use RLock to prevent deadlocks on nested calls
         with _fetch_lock:
             # Re-check after acquiring lock
-            entry = cache.get(key)
+            entry = _GLOBAL_CACHE["data"].get(key)
             if entry is None:
                 # Actual fetch
                 result = func(*args, **kwargs)
-                cache[key] = {"val": result, "ts": now}
+                _GLOBAL_CACHE["data"][key] = {"val": result, "ts": now}
                 return result
             return entry["val"]
             
     # Check if stale (300 seconds = 5 mins)
     if (now - entry["ts"]).total_seconds() > 300:
-        if not state["is_fetching"]:
+        if not _GLOBAL_CACHE["is_fetching"].get(key):
             def background_task():
                 try:
-                    state["is_fetching"] = True
+                    _GLOBAL_CACHE["is_fetching"][key] = True
                     new_val = func(*args, **kwargs)
-                    state["data"][key] = {"val": new_val, "ts": datetime.now()}
+                    _GLOBAL_CACHE["data"][key] = {"val": new_val, "ts": datetime.now()}
                 except Exception:
                     pass
                 finally:
-                    state["is_fetching"] = False
+                    _GLOBAL_CACHE["is_fetching"][key] = False
             
             thread = threading.Thread(target=background_task)
             thread.daemon = True
