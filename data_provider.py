@@ -16,7 +16,6 @@ _FALLBACK_TICKERS = [
 ]
 
 # --- Global In-Memory State ---
-# This dictionary survives between Streamlit runs and sessions.
 if "GLOBAL_STATE" not in st.session_state:
     st.session_state["GLOBAL_STATE"] = {
         "data": {},
@@ -24,8 +23,8 @@ if "GLOBAL_STATE" not in st.session_state:
         "is_fetching": False
     }
 
-# Thread lock to prevent concurrent fetches from the same instance
-_fetch_lock = threading.Lock()
+# Reentrant Lock to allow nested calls to execute_managed_fetch without deadlocking
+_fetch_lock = threading.RLock()
 
 @st.cache_data(ttl=300)
 def fetch_sp500_tickers() -> list[str]:
@@ -112,26 +111,24 @@ def execute_managed_fetch(func, *args, **kwargs):
     Triggers a background refresh if data is stale (> 5 mins).
     Blocks only on the very first call.
     """
-    # Key unique to the function call
     key = f"{func.__name__}_{str(args)}_{str(kwargs)}"
     
+    if "GLOBAL_STATE" not in st.session_state:
+        st.session_state["GLOBAL_STATE"] = {"data": {}, "is_fetching": False}
+        
     state = st.session_state["GLOBAL_STATE"]
     cache = state["data"]
     
     now = datetime.now()
     entry = cache.get(key)
     
-    # Logic:
-    # 1. No entry? Block and fetch (Initial Load)
-    # 2. Entry exists but stale? Return stale, trigger background thread.
-    # 3. Entry exists and fresh? Return fresh.
-    
     if entry is None:
-        # Initial block
+        # Initial block - use RLock to prevent deadlocks on nested calls
         with _fetch_lock:
-            # Check again inside lock to prevent race condition
+            # Re-check after acquiring lock
             entry = cache.get(key)
             if entry is None:
+                # Actual fetch
                 result = func(*args, **kwargs)
                 cache[key] = {"val": result, "ts": now}
                 return result
@@ -140,16 +137,18 @@ def execute_managed_fetch(func, *args, **kwargs):
     # Check if stale (300 seconds = 5 mins)
     if (now - entry["ts"]).total_seconds() > 300:
         if not state["is_fetching"]:
-            # Trigger background refresh
             def background_task():
                 try:
-                    st.session_state["GLOBAL_STATE"]["is_fetching"] = True
+                    state["is_fetching"] = True
                     new_val = func(*args, **kwargs)
-                    st.session_state["GLOBAL_STATE"]["data"][key] = {"val": new_val, "ts": datetime.now()}
+                    state["data"][key] = {"val": new_val, "ts": datetime.now()}
+                except Exception:
+                    pass
                 finally:
-                    st.session_state["GLOBAL_STATE"]["is_fetching"] = False
+                    state["is_fetching"] = False
             
             thread = threading.Thread(target=background_task)
+            thread.daemon = True
             thread.start()
             
     return entry["val"]
