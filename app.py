@@ -31,7 +31,16 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.markdown(f"<div style='font-size:.75rem;color:#94a3b8'>Last refresh: {datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
+    
+    import data_provider as dp
+    latest_dp = dp.fetch_latest_datapoint_time()
+    
+    st.markdown(f"""
+    <div style='font-size:.75rem;color:#94a3b8;line-height:1.6'>
+        <b>Market Data:</b> {latest_dp}<br>
+        <b>Last Refresh:</b> {datetime.now().strftime('%H:%M:%S')}
+    </div>
+    """, unsafe_allow_html=True)
 
 col_empty, col_refresh = st.columns([8, 2])
 with col_refresh:

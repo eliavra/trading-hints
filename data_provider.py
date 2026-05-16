@@ -66,6 +66,18 @@ def fetch_yf_options_expirations(ticker: str) -> tuple:
     except Exception:
         return ()
 
+@st.cache_data(ttl=60)
+def fetch_latest_datapoint_time() -> str:
+    try:
+        # Fetch 1m data for SPY to find the absolute most recent market datapoint
+        df = yf.download("SPY", period="1d", interval="1m", progress=False)
+        if not df.empty:
+            last_dt = df.index[-1]
+            return last_dt.strftime('%Y-%m-%d %H:%M %Z')
+    except Exception:
+        pass
+    return "N/A"
+
 @st.cache_data(ttl=300)
 def fetch_yf_option_chain(ticker: str, expiration: str):
     try:
