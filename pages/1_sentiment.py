@@ -105,47 +105,36 @@ with sma_col:
     </div>
     """, unsafe_allow_html=True)
 
-# --- Full indicators table ---
-st.markdown(f"<div class='card-title' style='margin-top:1.5rem'>{t('all_indicators')}</div>", unsafe_allow_html=True)
+# --- Full indicators grid ---
+st.markdown(f"<h3 style='color:{SLATE_800};margin-top:2.5rem;margin-bottom:1.5rem;'>{t('all_indicators')}</h3>", unsafe_allow_html=True)
 
-rows = []
-color_map: dict[str, dict[str, str]] = {}
-for ind in breadth.indicators:
-    sv = ind.signal.value
-    val_str = str(ind.value) if not isinstance(ind.value, float) else f"{ind.value:.2f}"
-    
-    # Use consistent keys for the dataframe
-    rows.append({
-        "indicator": t(ind.name),
-        "value": val_str,
-        "signal": t(sv),
-        "action": t(ind.action),
-        "description": t(ind.description)
-    })
-    color_map[t(sv)] = signal_color(ind.signal)
+# Grid layout: 3 indicators per row
+cols = st.columns(3)
+for i, ind in enumerate(breadth.indicators):
+    with cols[i % 3]:
+        sv = ind.signal.value
+        val_str = str(ind.value) if not isinstance(ind.value, float) else f"{ind.value:.2f}"
+        
+        # Determine color for the value
+        c = signal_color(ind.signal)
+        
+        st.markdown(f"""
+        <div class="card" style="margin-bottom:1rem; min-height: 200px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:600; margin-bottom:0.25rem;">{t(ind.name)}</div>
+                <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:0.75rem;">
+                    <span style="font-size:1.8rem; font-weight:700; color:{SLATE_800};">{val_str}</span>
+                    <span class="signal-badge" style="background:{c['bg']}; color:{c['fg']}; font-size:0.65rem;">{t(sv)}</span>
+                </div>
+                <div style="font-size:0.85rem; color:{SLATE_600}; font-weight:600; line-height:1.4; margin-bottom:0.5rem;">{t(ind.action)}</div>
+            </div>
+            <div style="font-size:0.75rem; color:#64748b; font-style:italic; border-top:1px solid #f1f5f9; padding-top:0.5rem;">
+                {t(ind.description)}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-df_b = pd.DataFrame(rows)
-
-# Professional Column Configuration
-column_config = {
-    "indicator": st.column_config.TextColumn(t("indicator"), width="medium"),
-    "value": st.column_config.TextColumn(t("value"), width="small"),
-    "signal": st.column_config.TextColumn(t("signal"), width="small"),
-    "action": st.column_config.TextColumn(t("action"), width="medium"),
-    "description": st.column_config.TextColumn(t("description"), width="large"),
-}
-
-styled = df_b.style.map(
-    lambda v: style_signal_cell(v, color_map) if v in color_map else "", 
-    subset=["signal"]
-)
-
-st.dataframe(
-    styled,
-    use_container_width=True,
-    hide_index=True,
-    column_config=column_config
-)
+st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
 # --- A/D Line chart ---
 if breadth.ad_data:

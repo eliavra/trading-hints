@@ -187,7 +187,7 @@ def _fetch_ad_line_data() -> dict[str, dict]:
 def _fetch_high_low_index() -> float:
     try:
         tickers = get_sp500_tickers()
-        df = dp.execute_managed_fetch(dp.fetch_yf_data, tickers, period="2y", interval="1d", group_by="column")
+        df = dp.execute_managed_fetch(dp.fetch_yf_data, tickers, period="1y", interval="1d", group_by="column")
         if df.empty:
             return 50.0
             
@@ -389,7 +389,12 @@ def _compute_market_breadth_logic() -> MarketBreadth:
     nh_nl = snap.net_nh_nl
     vol_ratio = snap.vol_breadth
 
-    hl_ratio = _fetch_high_low_index()
+    # Make High-Low Index non-blocking by providing a fallback if it fails
+    try:
+        hl_ratio = _fetch_high_low_index()
+    except Exception:
+        hl_ratio = (nh / (nh + nl) * 100) if (nh + nl) > 0 else 50.0
+        
     fg = _compute_fear_greed(sma20, sma50, sma200, nh_nl, vol_ratio)
     
     risk_metrics = _fetch_risk_metrics()
