@@ -7,6 +7,7 @@ from ui import load_css, TEAL, SLATE_800, SLATE_600, PLOTLY_LAYOUT, signal_color
 load_css()
 
 st.title("Sentiment & Breadth")
+st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
 TIMEFRAME_CONFIG = {
     "Short Term": {

@@ -63,11 +63,14 @@ def load_css():
     /* metric overrides */
     div[data-testid="stMetric"] {
         background: white; border: 1px solid #e2e8f0; border-radius: .75rem;
-        padding: 1rem 1.25rem; box-shadow: 0 1px 2px rgba(0,0,0,.03);
+        padding: 0.75rem 1rem; box-shadow: 0 1px 2px rgba(0,0,0,.03);
+        min-width: 0;
     }
-    div[data-testid="stMetric"] label { color: #64748b !important; font-size: .8rem; }
+    div[data-testid="stMetric"] label { color: #64748b !important; font-size: .75rem; }
     div[data-testid="stMetric"] [data-testid="stMetricValue"] { 
-        color: #0f172a; font-weight: 700; white-space: normal !important; overflow-wrap: anywhere; line-height: 1.2; 
+        color: #0f172a; font-weight: 700; font-size: 1.4rem !important;
+        white-space: nowrap !important; overflow: visible !important;
+        line-height: 1.1; 
     }
 
     /* signal badge */
@@ -115,11 +118,13 @@ def create_gauge_chart(value: float, title: str, steps: list[dict], min_val: flo
         ),
     ))
     
-    # Use standard Plotly layout with transparent paper background
-    custom_layout = PLOTLY_LAYOUT.copy()
-    custom_layout.update(
+    # Use standard Plotly layout but stripped down for gauges
+    fig.update_layout(
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        font=dict(family="Inter, sans-serif", color=SLATE_600),
         margin=dict(t=50, b=20, l=30, r=30),
-        height=250
+        height=250,
+        showlegend=False
     )
-    fig.update_layout(**custom_layout)
     return fig
