@@ -16,8 +16,9 @@ page_sentiment = st.Page("pages/1_sentiment.py", title=t("sentiment"), icon="�
 page_sectors = st.Page("pages/2_sectors.py", title=t("sectors"), icon="🔄")
 page_seasonality = st.Page("pages/3_seasonality.py", title=t("seasonality"), icon="🏹")
 page_risk = st.Page("pages/4_risk.py", title=t("risk"), icon="⚡")
+page_about = st.Page("pages/5_about.py", title=t("about"), icon="ℹ️")
 
-pg = st.navigation([page_home, page_sentiment, page_sectors, page_seasonality, page_risk])
+pg = st.navigation([page_home, page_sentiment, page_sectors, page_seasonality, page_risk, page_about])
 
 # Global Sidebar
 with st.sidebar:

@@ -51,3 +51,7 @@ with c2:
     with st.container(border=True):
         st.page_link("pages/3_seasonality.py", label=f"**{t('seasonality')}**", icon="🏹")
         st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>{t('seasonality_desc')}</div>", unsafe_allow_html=True)
+
+    with st.container(border=True):
+        st.page_link("pages/5_about.py", label=f"**{t('about')}**", icon="ℹ️")
+        st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>View version information and provide feedback.</div>", unsafe_allow_html=True)

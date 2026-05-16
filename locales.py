@@ -133,6 +133,12 @@ LOCALES = {
         "Broad Participation Confirmed": "Broad Participation Confirmed",
         "Participation Narrowing - Caution": "Participation Narrowing - Caution",
         "Insufficient Data": "Insufficient Data",
+        "about": "About",
+        "version": "Version",
+        "repository": "Repository",
+        "feedback": "Feedback",
+        "feedback_desc": "We value your feedback! Please report bugs or suggest features via the GitHub repository or contact the development team.",
+        "about_desc": "Exposure Manager is a quantitative financial dashboard designed to assist traders and portfolio managers in making data-driven exposure decisions.",
     },
     "he": {
         "app_title": "מנהל חשיפה",
@@ -235,6 +241,10 @@ LOCALES = {
         "pct_sma20": "% מעל ממוצע נע 20",
         "pct_sma50": "% מעל ממוצע נע 50",
         "pct_sma200": "% מעל ממוצע נע 200",
+        "nh_nl_net": "שיאים חדשים - שפלים חדשים (נטו)",
+        "nh_nl_help": "ספירה יומית נטו של מניות S&P 500 המגיעות לשיא שנתי לעומת שפל שנתי.",
+        "volume_breadth": "רוחב מחזור מסחר (עולה לעומת יורד)",
+        "vol_breadth_help": "היחס בין מחזור המסחר הזורם למניות עולות לעומת מניות יורדות. מעל 1.0 מעיד על לחץ קניות.",
         "mco_desc": "מודד את ההפרש בין ממוצע נע אקספוננציאלי ל-19 יום ו-39 יום של נתוני קידום לעומת נסיגה.",
         "hl_index_desc": "ממוצע נע פשוט ל-10 ימים של אחוז השיאים החדשים (שיאים חדשים / (שיאים חדשים + שפלים חדשים)).",
         "vix_term_structure_desc": "בשוק בריא, תנודתיות לטווח קצר (VIX) נמוכה מתנודתיות לטווח ארוך (VIX3M/VIX6M). מצב זה נקרא קונטנגו. כאשר ה-VIX לטווח קצר עולה מעל ה-3 חודשים, השוק נמצא בבקוורדציה.",
@@ -266,6 +276,12 @@ LOCALES = {
         "Broad Participation Confirmed": "השתתפות רחבה מאושרת",
         "Participation Narrowing - Caution": "השתתפות מצטמצמת - זהירות",
         "Insufficient Data": "אין מספיק נתונים",
+        "about": "אודות",
+        "version": "גרסה",
+        "repository": "מאגר קוד (Repository)",
+        "feedback": "משוב",
+        "feedback_desc": "אנו מעריכים את המשוב שלך! אנא דווח על באגים או הצע תכונות חדשות דרך מאגר ה-GitHub או צור קשר עם צוות הפיתוח.",
+        "about_desc": "מנהל חשיפה הוא לוח בקרה פיננסי כמותי שנועד לסייע לסוחרים ומנהלי תיקים לקבל החלטות חשיפה מבוססות נתונים.",
     }
 }
 
