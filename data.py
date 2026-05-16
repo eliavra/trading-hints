@@ -189,7 +189,13 @@ def _fetch_ad_line_data() -> dict[str, dict]:
     declining = (daily_change < 0).sum(axis=1)
     net_advances = advancing - declining
     
-    results = {}
+    # McClellan Oscillator
+    ema19 = net_advances.ewm(span=19, adjust=False).mean()
+    ema39 = net_advances.ewm(span=39, adjust=False).mean()
+    mco_series = ema19 - ema39
+    current_mco = float(mco_series.iloc[-1]) if not mco_series.empty else 0.0
+    
+    results = {"MCO": current_mco}
     periods = {"1M": 21, "3M": 63, "6M": 126, "1Y": 252, "2Y": 504}
     
     for period, days in periods.items():
@@ -216,18 +222,46 @@ def _fetch_ad_line_data() -> dict[str, dict]:
 
 
 # ---------------------------------------------------------------------------
-# VIX
+# Risk & Volatility Metrics
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=300)
-def _fetch_vix() -> float:
+def _fetch_risk_metrics() -> dict[str, float]:
+    metrics = {"vix": 0.0, "vix_3m": 0.0, "vix_6m": 0.0, "spy_atr_pct": 0.0}
     try:
-        vix_df = yf.download("^VIX", period="5d", interval="1d", progress=False)
-        close = vix_df["Close"].dropna()
-        if isinstance(close, pd.DataFrame):
-            close = close.iloc[:, 0]
-        return round(float(close.iloc[-1]), 2)
-    except Exception:
-        return 0.0
+        # Fetch VIX term structure
+        vix_tickers = ["^VIX", "^VIX3M", "^VIX6M"]
+        df_vix = yf.download(vix_tickers, period="5d", interval="1d", group_by="ticker", progress=False)
+        for t, k in zip(vix_tickers, ["vix", "vix_3m", "vix_6m"]):
+            if t in df_vix:
+                close = df_vix[t]["Close"].dropna()
+                if isinstance(close, pd.DataFrame):
+                    close = close.iloc[:, 0]
+                if not close.empty:
+                    metrics[k] = round(float(close.iloc[-1]), 2)
+        
+        # Fetch SPY for ATR
+        spy = yf.download("SPY", period="1mo", interval="1d", progress=False)
+        if not spy.empty and len(spy) >= 14:
+            high = spy["High"].squeeze()
+            low = spy["Low"].squeeze()
+            close = spy["Close"].squeeze()
+            
+            prev_close = close.shift(1)
+            tr1 = high - low
+            tr2 = (high - prev_close).abs()
+            tr3 = (low - prev_close).abs()
+            
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            atr = tr.rolling(14).mean()
+            
+            current_atr = float(atr.iloc[-1])
+            current_close = float(close.iloc[-1])
+            metrics["spy_atr_pct"] = round((current_atr / current_close) * 100, 2)
+            
+    except Exception as e:
+        print(f"Error fetching risk metrics: {e}")
+        
+    return metrics
 
 
 # ---------------------------------------------------------------------------
@@ -306,6 +340,42 @@ def _compute_fear_greed(sma20: float, sma50: float, sma200: float, nh_nl: int, v
     )
 
 
+def _vix_term_signal(vix: float, vix_3m: float) -> tuple[Signal, str]:
+    if vix == 0.0 or vix_3m == 0.0:
+        return Signal.NEUTRAL, "Insufficient Data"
+    if vix > vix_3m:
+        return Signal.FEAR, "Backwardation (Panic)"
+    ratio = vix / vix_3m
+    if ratio > 0.9:
+        return Signal.CAUTION, "Flattening Curve"
+    return Signal.HEALTHY, "Normal Contango"
+
+def _mco_signal(mco: float) -> tuple[Signal, str]:
+    if mco > 50:
+        return Signal.OVERBOUGHT, "Overbought Breadth"
+    if mco < -50:
+        return Signal.OVERSOLD, "Oversold Breadth"
+    if mco > 0:
+        return Signal.BULLISH, "Positive Breadth Momentum"
+    return Signal.BEARISH, "Negative Breadth Momentum"
+
+def _hl_ratio_signal(hl_ratio: float) -> tuple[Signal, str]:
+    if hl_ratio > 80:
+        return Signal.STRONG_BULL, "Strong Highs"
+    if hl_ratio < 20:
+        return Signal.WEAK_BEAR, "Strong Lows"
+    if hl_ratio > 50:
+        return Signal.BULLISH, "Highs > Lows"
+    return Signal.BEARISH, "Lows > Highs"
+
+def _atr_signal(atr_pct: float) -> tuple[Signal, str]:
+    if atr_pct > 2.5:
+        return Signal.CAUTION, "High Volatility (Reduce Size)"
+    if atr_pct < 1.0:
+        return Signal.EUPHORIA, "Low Volatility (Squeeze Risk)"
+    return Signal.HEALTHY, "Normal Volatility"
+
+
 # ---------------------------------------------------------------------------
 # Main breadth function
 # ---------------------------------------------------------------------------
@@ -317,19 +387,33 @@ def compute_market_breadth() -> MarketBreadth:
     sma20 = snap.pct_above_sma20
     sma50 = snap.pct_above_sma50
     sma200 = snap.pct_above_sma200
+    nh = snap.new_highs
+    nl = snap.new_lows
     nh_nl = snap.net_nh_nl
+    hl_ratio = (nh / (nh + nl) * 100) if (nh + nl) > 0 else 50.0
     vol_ratio = snap.vol_breadth
 
     fg = _compute_fear_greed(sma20, sma50, sma200, nh_nl, vol_ratio)
-    vix = _fetch_vix()
+    
+    risk_metrics = _fetch_risk_metrics()
+    vix = risk_metrics["vix"]
+    vix_3m = risk_metrics["vix_3m"]
+    vix_6m = risk_metrics["vix_6m"]
+    spy_atr_pct = risk_metrics["spy_atr_pct"]
+    
     ad_data = _fetch_ad_line_data()
+    mco = ad_data.get("MCO", 0.0)
 
     sig20, act20 = _breadth_signal_sma20(sma20)
     sig50, act50 = _breadth_signal_sma50(sma50)
     sig200, act200 = _breadth_signal_sma200(sma200)
     sig_nh, act_nh = _breadth_signal_nh_nl(nh_nl)
+    sig_hl, act_hl = _hl_ratio_signal(hl_ratio)
     sig_vol, act_vol = _breadth_signal_volume(vol_ratio)
     sig_vix, act_vix = _vix_signal(vix)
+    sig_term, act_term = _vix_term_signal(vix, vix_3m)
+    sig_mco, act_mco = _mco_signal(mco)
+    sig_atr, act_atr = _atr_signal(spy_atr_pct)
     
     trend_6m = ad_data.get("6M", {}).get("trend", "N/A")
     sig_ad, act_ad = _ad_line_signal(trend_6m)
@@ -346,9 +430,13 @@ def compute_market_breadth() -> MarketBreadth:
         BreadthIndicator("% Stocks > SMA 50 (Medium-Term)", sma50, sig50, act50),
         BreadthIndicator("% Stocks > SMA 200 (Long-Term)", sma200, sig200, act200),
         BreadthIndicator("New Highs - New Lows (Net)", nh_nl, sig_nh, act_nh),
+        BreadthIndicator("High-Low Ratio", hl_ratio, sig_hl, act_hl),
         BreadthIndicator("Volume Breadth (Up vs Down)", vol_ratio, sig_vol, act_vol),
+        BreadthIndicator("McClellan Oscillator", mco, sig_mco, act_mco),
         BreadthIndicator("Fear / Greed Proxy", fg, fg_signal, fg_action),
         BreadthIndicator("VIX (Fear Gauge)", vix, sig_vix, act_vix),
+        BreadthIndicator("VIX Term Structure", f"{vix:.1f} vs {vix_3m:.1f}", sig_term, act_term),
+        BreadthIndicator("SPY ATR %", spy_atr_pct, sig_atr, act_atr),
         BreadthIndicator("A/D Line Trend (6M)", trend_6m, sig_ad, act_ad),
     ]
 
@@ -357,9 +445,14 @@ def compute_market_breadth() -> MarketBreadth:
         pct_above_sma50=sma50,
         pct_above_sma200=sma200,
         new_highs_lows=nh_nl,
+        high_low_ratio=hl_ratio,
         volume_breadth_ratio=vol_ratio,
         fear_greed_score=fg,
         vix=vix,
+        vix_3m=vix_3m,
+        vix_6m=vix_6m,
+        mcclellan_osc=mco,
+        spy_atr_pct=spy_atr_pct,
         ad_data=ad_data,
         indicators=indicators,
     )

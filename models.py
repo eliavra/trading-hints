@@ -41,9 +41,14 @@ class MarketBreadth:
     pct_above_sma50: float
     pct_above_sma200: float
     new_highs_lows: int
+    high_low_ratio: float
     volume_breadth_ratio: float
     fear_greed_score: float
     vix: float = 0.0
+    vix_3m: float = 0.0
+    vix_6m: float = 0.0
+    mcclellan_osc: float = 0.0
+    spy_atr_pct: float = 0.0
     ad_data: dict[str, dict] = field(default_factory=dict)
     indicators: list[BreadthIndicator] = field(default_factory=list)
 
