@@ -36,38 +36,17 @@ PLOTLY_LAYOUT = dict(
 def load_css():
     lang = st.session_state.get("lang", "en")
     is_rtl = lang == "he"
-    rtl_css = """
-        [data-testid="stAppViewContainer"] {
-            direction: rtl;
-            text-align: right;
-        }
-        [data-testid="stSidebar"] {
-            direction: rtl;
-        }
-        /* Fix Plotly chart containers and specific LTR elements */
-        .js-plotly-plot, .stPlotlyChart {
-            direction: ltr !important;
-        }
-        div[data-testid="stMetric"] {
-            text-align: right;
-        }
-        /* Ensure sidebar navigation stays readable */
-        section[data-testid="stSidebar"] [data-testid="stSidebarNav"] {
-            text-align: right;
-        }
-    """ if is_rtl else ""
-
-    st.markdown(f"""
+    
+    # Base CSS
+    css = """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    html, body {{ font-family: 'Inter', sans-serif; }}
-    h1, h2, h3, h4, h5, h6, p, label, .card, .metric-value {{ font-family: 'Inter', sans-serif !important; }}
-    .material-icons, .material-symbols-rounded {{ font-family: 'Material Symbols Rounded' !important; }}
-
-    {rtl_css}
+    html, body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, h5, h6, p, label, .card, .metric-value { font-family: 'Inter', sans-serif !important; }
+    .material-icons, .material-symbols-rounded { font-family: 'Material Symbols Rounded' !important; }
 
     /* header bar */
-    header[data-testid="stHeader"] {{ background: white; border-bottom: 1px solid #e2e8f0; }}
+    header[data-testid="stHeader"] { background: white; border-bottom: 1px solid #e2e8f0; }
 
     /* sidebar */
     section[data-testid="stSidebar"] {
@@ -109,8 +88,31 @@ def load_css():
 
     /* plotly bg */
     .js-plotly-plot .plotly .main-svg { border-radius: .75rem; }
-    </style>
-    """, unsafe_allow_html=True)
+    """
+    
+    # RTL specific CSS
+    if is_rtl:
+        css += """
+        [data-testid="stAppViewContainer"] {
+            direction: rtl;
+            text-align: right;
+        }
+        [data-testid="stSidebar"] {
+            direction: rtl;
+        }
+        .js-plotly-plot, .stPlotlyChart {
+            direction: ltr !important;
+        }
+        div[data-testid="stMetric"] {
+            text-align: right;
+        }
+        section[data-testid="stSidebar"] [data-testid="stSidebarNav"] {
+            text-align: right;
+        }
+        """
+    
+    css += "</style>"
+    st.markdown(css, unsafe_allow_html=True)
 
 def signal_color(sig: Signal) -> dict[str, str]:
     if sig in RED_SIGNALS:
