@@ -222,6 +222,41 @@ def _fetch_ad_line_data() -> dict[str, dict]:
 
 
 # ---------------------------------------------------------------------------
+# High-Low Index (Mathematically Smoothed 10-day SMA of Record High Percent)
+# ---------------------------------------------------------------------------
+@st.cache_data(ttl=300)
+def _fetch_high_low_index() -> float:
+    try:
+        tickers = get_sp500_tickers()
+        df = yf.download(tickers, period="2y", interval="1d", progress=False)
+        if df.empty:
+            return 50.0
+            
+        highs = df['High']
+        lows = df['Low']
+
+        # Calculate 52-week (252 trading days) rolling high and low
+        rolling_high = highs.rolling(window=252).max()
+        rolling_low = lows.rolling(window=252).min()
+
+        # A stock hits a new 52-week high if its current high is >= its 252-day rolling high
+        new_highs = (highs >= rolling_high).sum(axis=1)
+        new_lows = (lows <= rolling_low).sum(axis=1)
+
+        # Record High Percent
+        rhp = (new_highs / (new_highs + new_lows)) * 100
+        rhp = rhp.fillna(50) # If both 0, default to 50
+
+        # High-Low Index = 10-day SMA of RHP
+        hl_index = rhp.rolling(window=10).mean()
+        
+        return round(float(hl_index.iloc[-1]), 1)
+    except Exception as e:
+        print(f"Error fetching High-Low Index: {e}")
+        return 50.0
+
+
+# ---------------------------------------------------------------------------
 # Risk & Volatility Metrics
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=300)
@@ -390,9 +425,9 @@ def compute_market_breadth() -> MarketBreadth:
     nh = snap.new_highs
     nl = snap.new_lows
     nh_nl = snap.net_nh_nl
-    hl_ratio = (nh / (nh + nl) * 100) if (nh + nl) > 0 else 50.0
     vol_ratio = snap.vol_breadth
 
+    hl_ratio = _fetch_high_low_index()
     fg = _compute_fear_greed(sma20, sma50, sma200, nh_nl, vol_ratio)
     
     risk_metrics = _fetch_risk_metrics()
@@ -430,7 +465,7 @@ def compute_market_breadth() -> MarketBreadth:
         BreadthIndicator("% Stocks > SMA 50 (Medium-Term)", sma50, sig50, act50),
         BreadthIndicator("% Stocks > SMA 200 (Long-Term)", sma200, sig200, act200),
         BreadthIndicator("New Highs - New Lows (Net)", nh_nl, sig_nh, act_nh),
-        BreadthIndicator("High-Low Ratio", hl_ratio, sig_hl, act_hl),
+        BreadthIndicator("High-Low Index (10d SMA)", hl_ratio, sig_hl, act_hl),
         BreadthIndicator("Volume Breadth (Up vs Down)", vol_ratio, sig_vol, act_vol),
         BreadthIndicator("McClellan Oscillator", mco, sig_mco, act_mco),
         BreadthIndicator("Fear / Greed Proxy", fg, fg_signal, fg_action),

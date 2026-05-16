@@ -69,12 +69,12 @@ with b1:
 with b2:
     st.markdown(f"""
     <div class="card">
-        <div style="font-size:1.5rem;font-weight:700;color:{SLATE_800};margin-bottom:0.5rem">{breadth.high_low_ratio:.1f}%</div>
-        <div style="font-weight:700;color:{TEAL};margin-bottom:.5rem">High-Low Ratio</div>
+        <div style="font-size:1.5rem;font-weight:700;color:{SLATE_800};margin-bottom:0.5rem">{breadth.high_low_ratio:.1f}</div>
+        <div style="font-weight:700;color:{TEAL};margin-bottom:.5rem">High-Low Index</div>
         <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6">
-            New 52-Week Highs divided by total new extremes (Highs + Lows). <br>
-            <i>Above 80%: Strong Uptrend</i><br>
-            <i>Below 20%: Strong Downtrend</i>
+            10-day SMA of Record High Percent (New Highs / (New Highs + New Lows)). <br>
+            <i>Above 80: Strong Uptrend</i><br>
+            <i>Below 20: Strong Downtrend</i>
         </p>
     </div>
     """, unsafe_allow_html=True)
