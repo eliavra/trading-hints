@@ -163,7 +163,7 @@ LOCALES = {
         "all_indicators": "כל מדדי רוחב השוק",
         "ad_line_title": "קו קידום-נסיגה מצטבר (A/D)",
         "ad_timeframe": "טווח זמן לקו A/D",
-        "sector_radar": "מכ"ם רוטציית סקטורים",
+        "sector_radar": 'מכ"ם רוטציית סקטורים',
         "sector_radar_desc": "סטייה באחוזים מממוצע נע 20 - דגלים אדומים/ירוקים מסמנים קיצון",
         "lookup_symbol": "חיפוש סימול",
         "seasonality_insights": "תובנות עונתיות",
