@@ -7,9 +7,7 @@ from io import StringIO
 import concurrent.futures
 
 import pandas as pd
-import requests
 import streamlit as st
-import yfinance as yf
 
 from models import (
     BreadthIndicator,
@@ -19,6 +17,7 @@ from models import (
     SectorData,
     Signal,
 )
+import data_provider as dp
 
 SECTORS: list[tuple[str, str]] = [
     ("Technology", "XLK"),
@@ -34,48 +33,9 @@ SECTORS: list[tuple[str, str]] = [
     ("Materials", "XLB"),
 ]
 
-_FALLBACK_TICKERS: list[str] = [
-    "AAPL", "MSFT", "AMZN", "NVDA", "GOOGL", "META", "TSLA", "BRK-B", "UNH", "JNJ",
-    "V", "XOM", "JPM", "PG", "MA", "HD", "CVX", "LLY", "MRK", "ABBV",
-]
-
-_TV_SCANNER_URL = "https://scanner.tradingview.com/america/scan"
-_TV_HEADERS = {"User-Agent": "Mozilla/5.0"}
-
-
-# ---------------------------------------------------------------------------
-# S&P 500 & NASDAQ 100 ticker lists (Wikipedia, 5m cache)
-# ---------------------------------------------------------------------------
-@st.cache_data(ttl=300)
-def get_sp500_tickers() -> list[str]:
-    try:
-        resp = requests.get(
-            "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        tables = pd.read_html(StringIO(resp.text))
-        tickers = tables[0]["Symbol"].tolist()
-        return [t.replace(".", "-") for t in tickers]
-    except Exception:
-        return _FALLBACK_TICKERS
-
-
-@st.cache_data(ttl=300)
-def get_nasdaq100_tickers() -> list[str]:
-    try:
-        resp = requests.get(
-            "https://en.wikipedia.org/wiki/NASDAQ-100",
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        tables = pd.read_html(StringIO(resp.text), match="Ticker")
-        tickers = tables[0]["Ticker"].tolist()
-        return [t.replace(".", "-") for t in tickers]
-    except Exception:
-        return _FALLBACK_TICKERS
+# We can re-export them if pages import them directly from data.py
+get_sp500_tickers = dp.fetch_sp500_tickers
+get_nasdaq100_tickers = dp.fetch_nasdaq100_tickers
 
 
 # ---------------------------------------------------------------------------
@@ -108,9 +68,8 @@ def _fetch_tv_breadth(tickers: tuple[str, ...]) -> _TvBreadthSnapshot:
     }
 
     try:
-        r = requests.post(_TV_SCANNER_URL, json=payload, headers=_TV_HEADERS, timeout=15)
-        r.raise_for_status()
-        stocks = r.json().get("data", [])
+        data = dp.fetch_tv_scan(payload)
+        stocks = data.get("data", [])
     except Exception:
         return _TvBreadthSnapshot(0, 0, 0, 0, 0, 0, 1.0, 0)
 
@@ -161,13 +120,13 @@ def _fetch_tv_breadth(tickers: tuple[str, ...]) -> _TvBreadthSnapshot:
 @st.cache_data(ttl=300)
 def _fetch_ad_line_data() -> dict[str, dict]:
     tickers = get_sp500_tickers()
-    spy = yf.download("SPY", period="2y", interval="1d", progress=False)
+    spy = dp.fetch_yf_data("SPY", period="2y", interval="1d", group_by="column")
     if spy.empty:
         return {}
 
     # For speed: compute from SPY daily advancing/declining via sector ETFs
     all_etfs = [s[1] for s in SECTORS] + ["SPY"]
-    df = yf.download(all_etfs, period="2y", interval="1d", group_by="ticker", progress=False)
+    df = dp.fetch_yf_data(all_etfs, period="2y", interval="1d", group_by="ticker")
 
     closes: dict[str, pd.Series] = {}
     for etf in all_etfs:
@@ -228,7 +187,7 @@ def _fetch_ad_line_data() -> dict[str, dict]:
 def _fetch_high_low_index() -> float:
     try:
         tickers = get_sp500_tickers()
-        df = yf.download(tickers, period="2y", interval="1d", progress=False)
+        df = dp.fetch_yf_data(tickers, period="2y", interval="1d", group_by="column")
         if df.empty:
             return 50.0
             
@@ -265,7 +224,7 @@ def _fetch_risk_metrics() -> dict[str, float]:
     try:
         # Fetch VIX term structure
         vix_tickers = ["^VIX", "^VIX3M", "^VIX6M"]
-        df_vix = yf.download(vix_tickers, period="5d", interval="1d", group_by="ticker", progress=False)
+        df_vix = dp.fetch_yf_data(vix_tickers, period="5d", interval="1d", group_by="ticker")
         for t, k in zip(vix_tickers, ["vix", "vix_3m", "vix_6m"]):
             if t in df_vix:
                 close = df_vix[t]["Close"].dropna()
@@ -275,7 +234,7 @@ def _fetch_risk_metrics() -> dict[str, float]:
                     metrics[k] = round(float(close.iloc[-1]), 2)
         
         # Fetch SPY for ATR
-        spy = yf.download("SPY", period="1mo", interval="1d", progress=False)
+        spy = dp.fetch_yf_data("SPY", period="1mo", interval="1d", group_by="column")
         if not spy.empty and len(spy) >= 14:
             high = spy["High"].squeeze()
             low = spy["Low"].squeeze()
@@ -513,14 +472,13 @@ def compute_sector_data() -> list[SectorData]:
         "columns": ["close", "SMA20"],
     }
     try:
-        r = requests.post(_TV_SCANNER_URL, json=payload, headers=_TV_HEADERS, timeout=10)
-        r.raise_for_status()
-        tv_data = {item["s"].split(":")[-1]: item["d"] for item in r.json().get("data", [])}
+        data = dp.fetch_tv_scan(payload)
+        tv_data = {item["s"].split(":")[-1]: item["d"] for item in data.get("data", [])}
     except Exception:
         tv_data = {}
 
     # yfinance for multi-timeframe performance (11 ETFs, 1mo — fast)
-    df = yf.download(etfs, period="1mo", interval="1d", group_by="ticker", threads=True, progress=False)
+    df = dp.fetch_yf_data(etfs, period="1mo", interval="1d", group_by="ticker")
     perf_map: dict[str, dict[str, float]] = {}
     for etf in etfs:
         try:
@@ -571,7 +529,7 @@ def compute_sector_data() -> list[SectorData]:
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def compute_seasonality(ticker: str) -> SeasonalityResult:
-    df = yf.download(ticker, period="10y", interval="1wk", progress=False)
+    df = dp.fetch_yf_data(ticker, period="10y", interval="1wk", group_by="column")
     if df.empty:
         return SeasonalityResult(ticker=ticker)
 
@@ -671,8 +629,7 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
 
     def _fetch_flow(sym):
         try:
-            tkr = yf.Ticker(sym)
-            exps = tkr.options
+            exps = dp.fetch_yf_options_expirations(sym)
             if not exps: return None
             
             total_bullish = 0.0
@@ -681,21 +638,21 @@ def compute_options_flow(tickers: list[str], max_expirations: int = 1) -> pd.Dat
             total_oi = 0
             
             for exp in exps[:max_expirations]:
-                chain = tkr.option_chain(exp)
+                calls, puts = dp.fetch_yf_option_chain(sym, exp)
                 
                 recent_trade = None
-                if not chain.calls.empty:
-                    recent_trade = chain.calls['lastTradeDate'].max()
-                if not chain.puts.empty:
-                    p_recent = chain.puts['lastTradeDate'].max()
+                if not calls.empty:
+                    recent_trade = calls['lastTradeDate'].max()
+                if not puts.empty:
+                    p_recent = puts['lastTradeDate'].max()
                     if recent_trade is None or p_recent > recent_trade:
                         recent_trade = p_recent
                         
                 if recent_trade is None: continue
                 recent_date_str = recent_trade.strftime('%Y-%m-%d')
                 
-                c_bull, c_bear, c_vol, c_oi = _process_chain(chain.calls, True, recent_date_str)
-                p_bull, p_bear, p_vol, p_oi = _process_chain(chain.puts, False, recent_date_str)
+                c_bull, c_bear, c_vol, c_oi = _process_chain(calls, True, recent_date_str)
+                p_bull, p_bear, p_vol, p_oi = _process_chain(puts, False, recent_date_str)
                 
                 total_bullish += c_bull + p_bull
                 total_bearish += c_bear + p_bear
