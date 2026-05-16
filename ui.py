@@ -66,7 +66,9 @@ def load_css():
         padding: 1rem 1.25rem; box-shadow: 0 1px 2px rgba(0,0,0,.03);
     }
     div[data-testid="stMetric"] label { color: #64748b !important; font-size: .8rem; }
-    div[data-testid="stMetric"] [data-testid="stMetricValue"] { color: #0f172a; font-weight: 700; }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] { 
+        color: #0f172a; font-weight: 700; white-space: normal !important; overflow-wrap: anywhere; line-height: 1.2; 
+    }
 
     /* signal badge */
     .signal-badge {
