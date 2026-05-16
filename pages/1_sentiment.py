@@ -8,6 +8,30 @@ load_css()
 
 st.title("Sentiment & Breadth")
 
+TIMEFRAME_CONFIG = {
+    "Short Term": {
+        "field": "pct_above_sma20",
+        "title": "% Stocks Above SMA 20",
+        "low": 20, "high": 85,
+        "calc": "Percentage of S&P 500 stocks trading above their 20-day Simple Moving Average.",
+        "usage": "Above 85% — overbought, reduce longs / tighten stops. Below 20% — oversold, look for long entries. Between 70-85% — be selective.",
+    },
+    "Medium Term": {
+        "field": "pct_above_sma50",
+        "title": "% Stocks Above SMA 50",
+        "low": 30, "high": 85,
+        "calc": "Percentage of S&P 500 stocks trading above their 50-day Simple Moving Average.",
+        "usage": "The classic range for significant corrections. 85% is a red light — reduce exposure. Below 30% — green light, increase exposure.",
+    },
+    "Long Term": {
+        "field": "pct_above_sma200",
+        "title": "% Stocks Above SMA 200",
+        "low": 40, "high": 80,
+        "calc": "Percentage of S&P 500 stocks trading above their 200-day Simple Moving Average.",
+        "usage": "Defines Bull vs Bear market. Above 80% — strong bull, stay long. Below 40% — weak / bear, go defensive. Below 60% — tighten stops.",
+    },
+}
+
 with st.spinner("Loading S&P 500 data..."):
     breadth = compute_market_breadth()
 
@@ -18,9 +42,10 @@ mc3.metric("% > SMA 200", f"{breadth.pct_above_sma200:.1f}%", help="Percentage o
 mc4.metric("Fear/Greed", f"{breadth.fear_greed_score:.0f}/100", help="A composite score (0-100) combining SMAs, new highs/lows, and volume breadth. Above 75 is Overbought, below 25 is Oversold.")
 mc5.metric("VIX", f"{breadth.vix:.1f}", help="The CBOE Volatility Index (Fear Gauge). Values above 25-30 typically indicate market panic.")
 
-chart_col, info_col = st.columns([2, 1])
+st.markdown(f"<h3 style='color:{SLATE_800};margin-top:2rem;'>Core Sentiment</h3>", unsafe_allow_html=True)
+fg_col, sma_col = st.columns(2)
 
-with chart_col:
+with fg_col:
     # 5-zone Fear & Greed gauge (matching standard infographic)
     fg_steps = [
         dict(range=[0, 20], color="#ef4444"),    # Extreme Fear (Red)
@@ -35,18 +60,42 @@ with chart_col:
         steps=fg_steps, min_val=0, max_val=100
     )
     st.plotly_chart(fg_gauge, use_container_width=True)
-
-with info_col:
+    
     st.markdown(f"""
-    <div class="card" style="height:100%">
+    <div class="card">
         <div style="font-weight:700;color:{TEAL};margin-bottom:.5rem">Indicator Meaning</div>
-        <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6">
-            The Fear & Greed index is a composite momentum score from 0-100. It aggregates the internal breadth metrics (Moving Averages, New Highs/Lows, and Volume Ratio) to determine if the market is overextended.<br><br>
-            <b>0-20: Extreme Fear</b> (Oversold, potential buy zone)<br>
-            <b>20-40: Fear</b><br>
-            <b>40-60: Neutral</b><br>
-            <b>60-80: Greed</b><br>
-            <b>80-100: Extreme Greed</b> (Overbought, potential sell zone)
+        <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6;margin:0">
+            A composite momentum score from 0-100 aggregating moving averages, extremes, and volume.<br>
+            <b>0-20: Extreme Fear</b> (potential buy zone)<br>
+            <b>80-100: Extreme Greed</b> (potential sell zone)
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with sma_col:
+    # --- Timeframe toggle ---
+    tf = st.radio("Interactive SMA Trend", list(TIMEFRAME_CONFIG.keys()), horizontal=True)
+    cfg = TIMEFRAME_CONFIG[tf]
+    current_val = getattr(breadth, cfg["field"])
+
+    sma_steps = [
+        dict(range=[0, cfg["low"]], color="#dcfce7"),     # Oversold (Green Zone)
+        dict(range=[cfg["low"], cfg["high"]], color="#f1f5f9"), # Neutral (Grey Zone)
+        dict(range=[cfg["high"], 100], color="#fee2e2"),    # Overbought (Red Zone)
+    ]
+    sma_gauge = create_gauge_chart(
+        value=current_val, 
+        title=cfg["title"], 
+        steps=sma_steps, min_val=0, max_val=100, suffix="%"
+    )
+    st.plotly_chart(sma_gauge, use_container_width=True)
+
+    st.markdown(f"""
+    <div class="card">
+        <div style="font-weight:700;color:{TEAL};margin-bottom:.5rem">Operative Meaning</div>
+        <p style="font-size:.85rem;color:{SLATE_600};line-height:1.6;margin:0">
+            {cfg['usage']}<br>
+            <span style="color:#94a3b8">Oversold: &lt;{cfg['low']}% | Overbought: &gt;{cfg['high']}%</span>
         </p>
     </div>
     """, unsafe_allow_html=True)
