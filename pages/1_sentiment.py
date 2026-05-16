@@ -107,16 +107,45 @@ with sma_col:
 
 # --- Full indicators table ---
 st.markdown(f"<div class='card-title' style='margin-top:1.5rem'>{t('all_indicators')}</div>", unsafe_allow_html=True)
+
 rows = []
 color_map: dict[str, dict[str, str]] = {}
 for ind in breadth.indicators:
     sv = ind.signal.value
     val_str = str(ind.value) if not isinstance(ind.value, float) else f"{ind.value:.2f}"
-    rows.append({t("indicator"): t(ind.name), t("value"): val_str, t("signal"): t(sv), t("action"): t(ind.action), t("description"): t(ind.description)})
+    
+    # Use consistent keys for the dataframe
+    rows.append({
+        "indicator": t(ind.name),
+        "value": val_str,
+        "signal": t(sv),
+        "action": t(ind.action),
+        "description": t(ind.description)
+    })
     color_map[t(sv)] = signal_color(ind.signal)
+
 df_b = pd.DataFrame(rows)
-styled = df_b.style.map(lambda v: style_signal_cell(v, color_map) if v in color_map else "", subset=[t("signal")])
-st.dataframe(styled, use_container_width=True, hide_index=True)
+
+# Professional Column Configuration
+column_config = {
+    "indicator": st.column_config.TextColumn(t("indicator"), width="medium"),
+    "value": st.column_config.TextColumn(t("value"), width="small"),
+    "signal": st.column_config.TextColumn(t("signal"), width="small"),
+    "action": st.column_config.TextColumn(t("action"), width="medium"),
+    "description": st.column_config.TextColumn(t("description"), width="large"),
+}
+
+styled = df_b.style.map(
+    lambda v: style_signal_cell(v, color_map) if v in color_map else "", 
+    subset=["signal"]
+)
+
+st.dataframe(
+    styled,
+    use_container_width=True,
+    hide_index=True,
+    column_config=column_config
+)
 
 # --- A/D Line chart ---
 if breadth.ad_data:

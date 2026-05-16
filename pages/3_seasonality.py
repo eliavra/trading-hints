@@ -84,17 +84,39 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
+        # Monthly Table
         monthly_rows = [{
-            "#": r.period, t("Month"): t(r.label),
-            t("Avg Return"): f"{r.avg_return:.2%}", t("Win Rate"): f"{r.win_rate:.0%}",
-            t("Std Dev"): f"{r.std_dev:.2%}", t("Min"): f"{r.min_return:.2%}", t("Max"): f"{r.max_return:.2%}",
+            "period": r.period, "month": t(r.label),
+            "avg_return": r.avg_return, "win_rate": r.win_rate,
+            "std_dev": r.std_dev, "min": r.min_return, "max": r.max_return,
         } for r in result.monthly]
-        st.dataframe(pd.DataFrame(monthly_rows), use_container_width=True, hide_index=True)
+        
+        mon_column_config = {
+            "period": st.column_config.NumberColumn("#", width="small", format="%d"),
+            "month": st.column_config.TextColumn(t("Month"), width="medium"),
+            "avg_return": st.column_config.NumberColumn(t("Avg Return"), format="%.2%"),
+            "win_rate": st.column_config.NumberColumn(t("Win Rate"), format="%.0%"),
+            "std_dev": st.column_config.NumberColumn(t("Std Dev"), format="%.2%"),
+            "min": st.column_config.NumberColumn("Min", format="%.2%"),
+            "max": st.column_config.NumberColumn("Max", format="%.2%"),
+        }
+        
+        st.dataframe(pd.DataFrame(monthly_rows), use_container_width=True, hide_index=True, column_config=mon_column_config)
 
         with st.expander(t("weekly_seasonality_title")):
             weekly_rows = [{
-                t("Week"): r.period, t("Avg Return"): f"{r.avg_return:.2%}",
-                t("Win Rate"): f"{r.win_rate:.0%}", t("Std Dev"): f"{r.std_dev:.2%}",
-                t("Min"): f"{r.min_return:.2%}", t("Max"): f"{r.max_return:.2%}",
+                "period": r.period, "avg_return": r.avg_return,
+                "win_rate": r.win_rate, "std_dev": r.std_dev,
+                "min": r.min_return, "max": r.max_return,
             } for r in result.weekly]
-            st.dataframe(pd.DataFrame(weekly_rows), use_container_width=True, hide_index=True)
+            
+            wk_column_config = {
+                "period": st.column_config.NumberColumn(t("Week"), width="small", format="%d"),
+                "avg_return": st.column_config.NumberColumn(t("Avg Return"), format="%.2%"),
+                "win_rate": st.column_config.NumberColumn(t("Win Rate"), format="%.0%"),
+                "std_dev": st.column_config.NumberColumn(t("Std Dev"), format="%.2%"),
+                "min": st.column_config.NumberColumn("Min", format="%.2%"),
+                "max": st.column_config.NumberColumn("Max", format="%.2%"),
+            }
+            
+            st.dataframe(pd.DataFrame(weekly_rows), use_container_width=True, hide_index=True, column_config=wk_column_config)

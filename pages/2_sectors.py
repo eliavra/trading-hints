@@ -55,15 +55,30 @@ sector_cmap: dict[str, dict[str, str]] = {}
 for s in sectors:
     sv = s.signal.value
     sector_rows.append({
-        t("Sector"): s.name, t("ETF"): s.etf,
-        t("Price"): f"${s.price:.2f}",
-        t("Day"): s.perf_day, t("1 Week"): s.perf_1w,
-        t("2 Weeks"): s.perf_2w, t("3 Weeks"): s.perf_3w,
-        t("Signal"): t(sv),
+        "sector": s.name, 
+        "etf": s.etf,
+        "price": s.price,
+        "day": s.perf_day, 
+        "1w": s.perf_1w,
+        "2w": s.perf_2w, 
+        "3w": s.perf_3w,
+        "signal": t(sv),
     })
     sector_cmap[t(sv)] = signal_color(s.signal)
 
 df_s = pd.DataFrame(sector_rows)
+
+# Professional Column Configuration
+sec_column_config = {
+    "sector": st.column_config.TextColumn(t("Sector"), width="medium"),
+    "etf": st.column_config.TextColumn(t("ETF"), width="small"),
+    "price": st.column_config.NumberColumn(t("Price"), format="$%.2f", width="small"),
+    "day": st.column_config.NumberColumn(t("Day"), format="%.2%"),
+    "1w": st.column_config.NumberColumn(t("1 Week"), format="%.2%"),
+    "2w": st.column_config.NumberColumn(t("2 Weeks"), format="%.2%"),
+    "3w": st.column_config.NumberColumn(t("3 Weeks"), format="%.2%"),
+    "signal": st.column_config.TextColumn(t("Signal"), width="small"),
+}
 
 def _color_perf(val: object) -> str:
     if not isinstance(val, (int, float)):
@@ -74,11 +89,16 @@ def _color_perf(val: object) -> str:
         return "color: #991b1b; font-weight: 600"
     return ""
 
-perf_cols = [t("Day"), t("1 Week"), t("2 Weeks"), t("3 Weeks")]
+perf_keys = ["day", "1w", "2w", "3w"]
 styled_s = (
     df_s.style
-    .format({c: "{:+.2%}" for c in perf_cols})
-    .map(_color_perf, subset=perf_cols)
-    .map(lambda v: style_signal_cell(v, sector_cmap) if v in sector_cmap else "", subset=[t("Signal")])
+    .map(_color_perf, subset=perf_keys)
+    .map(lambda v: style_signal_cell(v, sector_cmap) if v in sector_cmap else "", subset=["signal"])
 )
-st.dataframe(styled_s, use_container_width=True, hide_index=True)
+
+st.dataframe(
+    styled_s, 
+    use_container_width=True, 
+    hide_index=True,
+    column_config=sec_column_config
+)
