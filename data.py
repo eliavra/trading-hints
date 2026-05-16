@@ -68,7 +68,7 @@ def _fetch_tv_breadth(tickers: tuple[str, ...]) -> _TvBreadthSnapshot:
     }
 
     try:
-        data = dp.fetch_tv_scan(payload)
+        data = dp.execute_managed_fetch(dp.fetch_tv_scan, payload)
         stocks = data.get("data", [])
     except Exception:
         return _TvBreadthSnapshot(0, 0, 0, 0, 0, 0, 1.0, 0)
@@ -120,13 +120,13 @@ def _fetch_tv_breadth(tickers: tuple[str, ...]) -> _TvBreadthSnapshot:
 @st.cache_data(ttl=300)
 def _fetch_ad_line_data() -> dict[str, dict]:
     tickers = get_sp500_tickers()
-    spy = dp.fetch_yf_data("SPY", period="2y", interval="1d", group_by="column")
+    spy = dp.execute_managed_fetch(dp.fetch_yf_data, "SPY", period="2y", interval="1d", group_by="column")
     if spy.empty:
         return {}
 
     # For speed: compute from SPY daily advancing/declining via sector ETFs
     all_etfs = [s[1] for s in SECTORS] + ["SPY"]
-    df = dp.fetch_yf_data(all_etfs, period="2y", interval="1d", group_by="ticker")
+    df = dp.execute_managed_fetch(dp.fetch_yf_data, all_etfs, period="2y", interval="1d", group_by="ticker")
 
     closes: dict[str, pd.Series] = {}
     for etf in all_etfs:
@@ -187,7 +187,7 @@ def _fetch_ad_line_data() -> dict[str, dict]:
 def _fetch_high_low_index() -> float:
     try:
         tickers = get_sp500_tickers()
-        df = dp.fetch_yf_data(tickers, period="2y", interval="1d", group_by="column")
+        df = dp.execute_managed_fetch(dp.fetch_yf_data, tickers, period="2y", interval="1d", group_by="column")
         if df.empty:
             return 50.0
             
@@ -224,7 +224,7 @@ def _fetch_risk_metrics() -> dict[str, float]:
     try:
         # Fetch VIX term structure
         vix_tickers = ["^VIX", "^VIX3M", "^VIX6M"]
-        df_vix = dp.fetch_yf_data(vix_tickers, period="5d", interval="1d", group_by="ticker")
+        df_vix = dp.execute_managed_fetch(dp.fetch_yf_data, vix_tickers, period="5d", interval="1d", group_by="ticker")
         for t, k in zip(vix_tickers, ["vix", "vix_3m", "vix_6m"]):
             if t in df_vix:
                 close = df_vix[t]["Close"].dropna()
@@ -234,7 +234,7 @@ def _fetch_risk_metrics() -> dict[str, float]:
                     metrics[k] = round(float(close.iloc[-1]), 2)
         
         # Fetch SPY for ATR
-        spy = dp.fetch_yf_data("SPY", period="1mo", interval="1d", group_by="column")
+        spy = dp.execute_managed_fetch(dp.fetch_yf_data, "SPY", period="1mo", interval="1d", group_by="column")
         if not spy.empty and len(spy) >= 14:
             high = spy["High"].squeeze()
             low = spy["Low"].squeeze()
@@ -375,6 +375,9 @@ def _atr_signal(atr_pct: float) -> tuple[Signal, str]:
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def compute_market_breadth() -> MarketBreadth:
+    return dp.execute_managed_fetch(_compute_market_breadth_logic)
+
+def _compute_market_breadth_logic() -> MarketBreadth:
     tickers = get_sp500_tickers()
     snap = _fetch_tv_breadth(tuple(tickers))
 
@@ -463,6 +466,9 @@ def _perf_at_offset(close: pd.Series, offset: int) -> float:
 
 @st.cache_data(ttl=300)
 def compute_sector_data() -> list[SectorData]:
+    return dp.execute_managed_fetch(_compute_sector_data_logic)
+
+def _compute_sector_data_logic() -> list[SectorData]:
     etfs = [s[1] for s in SECTORS]
 
     # TradingView for current price + SMA20
@@ -472,13 +478,13 @@ def compute_sector_data() -> list[SectorData]:
         "columns": ["close", "SMA20"],
     }
     try:
-        data = dp.fetch_tv_scan(payload)
+        data = dp.execute_managed_fetch(dp.fetch_tv_scan, payload)
         tv_data = {item["s"].split(":")[-1]: item["d"] for item in data.get("data", [])}
     except Exception:
         tv_data = {}
 
     # yfinance for multi-timeframe performance (11 ETFs, 1mo — fast)
-    df = dp.fetch_yf_data(etfs, period="1mo", interval="1d", group_by="ticker")
+    df = dp.execute_managed_fetch(dp.fetch_yf_data, etfs, period="1mo", interval="1d", group_by="ticker")
     perf_map: dict[str, dict[str, float]] = {}
     for etf in etfs:
         try:
@@ -529,6 +535,9 @@ def compute_sector_data() -> list[SectorData]:
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=300)
 def compute_seasonality(ticker: str) -> SeasonalityResult:
+    return dp.execute_managed_fetch(_compute_seasonality_logic, ticker)
+
+def _compute_seasonality_logic(ticker: str) -> SeasonalityResult:
     df = dp.fetch_yf_data(ticker, period="10y", interval="1wk", group_by="column")
     if df.empty:
         return SeasonalityResult(ticker=ticker)
