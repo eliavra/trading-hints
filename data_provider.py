@@ -73,7 +73,13 @@ def fetch_latest_datapoint_time() -> str:
         df = yf.download("SPY", period="1d", interval="1m", progress=False)
         if not df.empty:
             last_dt = df.index[-1]
-            return last_dt.strftime('%Y-%m-%d %H:%M %Z')
+            import pytz
+            israel_tz = pytz.timezone('Asia/Jerusalem')
+            # Ensure the timestamp is timezone-aware
+            if last_dt.tzinfo is None:
+                last_dt = pytz.utc.localize(last_dt)
+            last_dt_israel = last_dt.astimezone(israel_tz)
+            return last_dt_israel.strftime('%Y-%m-%d %H:%M %Z')
     except Exception:
         pass
     return "N/A"

@@ -35,10 +35,14 @@ with st.sidebar:
     import data_provider as dp
     latest_dp = dp.fetch_latest_datapoint_time()
     
+    import pytz
+    israel_tz = pytz.timezone('Asia/Jerusalem')
+    now_israel = datetime.now(israel_tz)
+    
     st.markdown(f"""
     <div style='font-size:.75rem;color:#94a3b8;line-height:1.6'>
         <b>Market Data:</b> {latest_dp}<br>
-        <b>Last Refresh:</b> {datetime.now().strftime('%H:%M:%S')}
+        <b>Last Refresh:</b> {now_israel.strftime('%H:%M:%S %Z')}
     </div>
     """, unsafe_allow_html=True)
 
