@@ -420,18 +420,18 @@ def compute_market_breadth() -> MarketBreadth:
     )
 
     indicators = [
-        BreadthIndicator("% Stocks > SMA 20 (Short-Term)", sma20, sig20, act20),
-        BreadthIndicator("% Stocks > SMA 50 (Medium-Term)", sma50, sig50, act50),
-        BreadthIndicator("% Stocks > SMA 200 (Long-Term)", sma200, sig200, act200),
-        BreadthIndicator("New Highs - New Lows (Net)", nh_nl, sig_nh, act_nh),
-        BreadthIndicator("High-Low Index (10d SMA)", hl_ratio, sig_hl, act_hl),
-        BreadthIndicator("Volume Breadth (Up vs Down)", vol_ratio, sig_vol, act_vol),
-        BreadthIndicator("McClellan Oscillator", mco, sig_mco, act_mco),
-        BreadthIndicator("Fear / Greed Proxy", fg, fg_signal, fg_action),
-        BreadthIndicator("VIX (Fear Gauge)", vix, sig_vix, act_vix),
-        BreadthIndicator("VIX Term Structure", f"{vix:.1f} vs {vix_3m:.1f}", sig_term, act_term),
-        BreadthIndicator("SPY ATR %", spy_atr_pct, sig_atr, act_atr),
-        BreadthIndicator("A/D Line Trend (6M)", trend_6m, sig_ad, act_ad),
+        BreadthIndicator("% Stocks > SMA 20 (Short-Term)", sma20, sig20, act20, "Measures short-term momentum. >85% is overbought, <20% is oversold."),
+        BreadthIndicator("% Stocks > SMA 50 (Medium-Term)", sma50, sig50, act50, "Measures medium-term trend. >85% warns of correction, <30% signals buying opportunities."),
+        BreadthIndicator("% Stocks > SMA 200 (Long-Term)", sma200, sig200, act200, "Defines the macro bull/bear market. >80% is a strong bull, <40% is a weak/bear market."),
+        BreadthIndicator("New Highs - New Lows (Net)", nh_nl, sig_nh, act_nh, "Daily net count of S&P 500 stocks hitting 52-week highs vs 52-week lows."),
+        BreadthIndicator("High-Low Index (10d SMA)", hl_ratio, sig_hl, act_hl, "10-day smoothed ratio of New Highs / (New Highs + New Lows). >80 is strong uptrend."),
+        BreadthIndicator("Volume Breadth (Up vs Down)", vol_ratio, sig_vol, act_vol, "Ratio of volume flowing into advancing stocks vs declining stocks. >1.0 indicates buying pressure."),
+        BreadthIndicator("McClellan Oscillator", mco, sig_mco, act_mco, "Difference between 19-day and 39-day EMA of net advances. >50 is overbought, <-50 is oversold."),
+        BreadthIndicator("Fear / Greed Proxy", fg, fg_signal, fg_action, "Custom weighted composite of the breadth indicators on a 0-100 scale."),
+        BreadthIndicator("VIX (Fear Gauge)", vix, sig_vix, act_vix, "Expected 30-day volatility. High numbers indicate fear, low numbers indicate complacency."),
+        BreadthIndicator("VIX Term Structure", f"{vix:.1f} vs {vix_3m:.1f}", sig_term, act_term, "Compares 1-month VIX to 3-month VIX3M. VIX > VIX3M indicates structural panic (Backwardation)."),
+        BreadthIndicator("SPY ATR %", spy_atr_pct, sig_atr, act_atr, "Average True Range as a percentage of SPY price. >2.5% indicates high chop/volatility."),
+        BreadthIndicator("A/D Line Trend (6M)", trend_6m, sig_ad, act_ad, "Direction of the 10-day moving average of the Cumulative Advance-Decline line."),
     ]
 
     return MarketBreadth(

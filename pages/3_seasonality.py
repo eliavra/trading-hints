@@ -33,10 +33,10 @@ else:
         """, unsafe_allow_html=True)
 
         sm1, sm2, sm3, sm4 = st.columns(4)
-        sm1.metric("Current Month", result.current_month)
-        sm2.metric("Avg Return", f"{cm.avg_return:.2%}")
-        sm3.metric("Win Rate", f"{cm.win_rate:.0%}")
-        sm4.metric("Std Dev", f"{cm.std_dev:.2%}")
+        sm1.metric("Current Month", result.current_month, help="The current calendar month being analyzed.")
+        sm2.metric("Avg Return", f"{cm.avg_return:.2%}", help="Historical average return for this month over the last 10 years.")
+        sm3.metric("Win Rate", f"{cm.win_rate:.0%}", help="Percentage of years this month closed positive.")
+        sm4.metric("Std Dev", f"{cm.std_dev:.2%}", help="Standard deviation of returns, indicating volatility or risk for this period.")
 
         chart_col, insight_col = st.columns([2, 1])
 

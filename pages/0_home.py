@@ -15,16 +15,16 @@ with st.spinner("Loading market snapshot..."):
 st.markdown(f"<h3 style='color:{SLATE_800};'>Current State</h3>", unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Fear/Greed Score", f"{breadth.fear_greed_score:.0f}/100")
-col2.metric("VIX", f"{breadth.vix:.1f}")
+col1.metric("Fear/Greed Score", f"{breadth.fear_greed_score:.0f}/100", help="A composite score (0-100) aggregating multiple breadth and momentum indicators. 0 indicates extreme fear, 100 indicates extreme greed.")
+col2.metric("VIX", f"{breadth.vix:.1f}", help="The CBOE Volatility Index, representing the market's expectation of 30-day forward-looking volatility.")
 
 trend_6m = breadth.ad_data.get("6M", {}).get("trend", "N/A")
-col3.metric("A/D Trend (6M)", trend_6m)
+col3.metric("A/D Trend (6M)", trend_6m, help="The 10-day trend of the Cumulative Advance-Decline Line. Shows if broad market participation is expanding or contracting.")
 
 hot_sectors = [s for s in sectors if s.pct_vs_sma20 > 0.03]
 hot_sectors.sort(key=lambda s: s.pct_vs_sma20, reverse=True)
 top_sector = f"{hot_sectors[0].name} ({hot_sectors[0].etf})" if hot_sectors else "None"
-col4.metric("Leading Sector", top_sector)
+col4.metric("Leading Sector", top_sector, help="The S&P 500 sector with the highest positive distance from its 20-day SMA.")
 
 st.divider()
 

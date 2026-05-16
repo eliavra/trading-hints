@@ -36,11 +36,11 @@ with st.spinner("Loading S&P 500 data..."):
     breadth = compute_market_breadth()
 
 mc1, mc2, mc3, mc4, mc5 = st.columns(5)
-mc1.metric("% > SMA 20", f"{breadth.pct_above_sma20:.1f}%")
-mc2.metric("% > SMA 50", f"{breadth.pct_above_sma50:.1f}%")
-mc3.metric("% > SMA 200", f"{breadth.pct_above_sma200:.1f}%")
-mc4.metric("Fear/Greed", f"{breadth.fear_greed_score:.0f}/100")
-mc5.metric("VIX", f"{breadth.vix:.1f}")
+mc1.metric("% > SMA 20", f"{breadth.pct_above_sma20:.1f}%", help="Percentage of S&P 500 stocks trading above their 20-day Simple Moving Average (Short-term trend).")
+mc2.metric("% > SMA 50", f"{breadth.pct_above_sma50:.1f}%", help="Percentage of S&P 500 stocks trading above their 50-day Simple Moving Average (Medium-term trend).")
+mc3.metric("% > SMA 200", f"{breadth.pct_above_sma200:.1f}%", help="Percentage of S&P 500 stocks trading above their 200-day Simple Moving Average (Long-term trend).")
+mc4.metric("Fear/Greed", f"{breadth.fear_greed_score:.0f}/100", help="A composite score (0-100) combining SMAs, new highs/lows, and volume breadth. Above 75 is Overbought, below 25 is Oversold.")
+mc5.metric("VIX", f"{breadth.vix:.1f}", help="The CBOE Volatility Index (Fear Gauge). Values above 25-30 typically indicate market panic.")
 
 # --- Timeframe toggle ---
 tf = st.radio("Timeframe", list(TIMEFRAME_CONFIG.keys()), horizontal=True, label_visibility="collapsed")
@@ -95,7 +95,7 @@ color_map: dict[str, dict[str, str]] = {}
 for ind in breadth.indicators:
     sv = ind.signal.value
     val_str = str(ind.value) if not isinstance(ind.value, float) else f"{ind.value:.2f}"
-    rows.append({"Indicator": ind.name, "Value": val_str, "Signal": sv, "Action": ind.action})
+    rows.append({"Indicator": ind.name, "Value": val_str, "Signal": sv, "Action": ind.action, "Description": ind.description})
     color_map[sv] = signal_color(ind.signal)
 df_b = pd.DataFrame(rows)
 styled = df_b.style.map(lambda v: style_signal_cell(v, color_map) if v in color_map else "", subset=["Signal"])

@@ -12,9 +12,9 @@ with st.spinner("Calculating risk metrics..."):
     breadth = compute_market_breadth()
 
 c1, c2, c3 = st.columns(3)
-c1.metric("VIX (30-Day)", f"{breadth.vix:.2f}")
-c2.metric("VIX3M (90-Day)", f"{breadth.vix_3m:.2f}")
-c3.metric("SPY ATR (14-Day)", f"{breadth.spy_atr_pct:.2f}%")
+c1.metric("VIX (30-Day)", f"{breadth.vix:.2f}", help="CBOE Volatility Index representing expected 30-day market volatility.")
+c2.metric("VIX3M (90-Day)", f"{breadth.vix_3m:.2f}", help="CBOE 3-Month Volatility Index representing expected 90-day market volatility.")
+c3.metric("SPY ATR (14-Day)", f"{breadth.spy_atr_pct:.2f}%", help="Average True Range as a percentage of SPY price. Measures the average daily price move relative to the index's current price.")
 
 st.markdown(f"<h3 style='color:{SLATE_800};margin-top:2rem;'>VIX Term Structure</h3>", unsafe_allow_html=True)
 term_col, info_col = st.columns([2, 1])

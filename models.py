@@ -33,6 +33,7 @@ class BreadthIndicator:
     value: float | str
     signal: Signal
     action: str
+    description: str = ""
 
 
 @dataclass
