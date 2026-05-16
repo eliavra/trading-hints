@@ -323,17 +323,6 @@ def _ad_line_signal(trend: str) -> tuple[Signal, str]:
     return Signal.NEUTRAL, "Insufficient Data"
 
 
-def _compute_fear_greed(sma20: float, sma50: float, sma200: float, nh_nl: int, vol_ratio: float) -> float:
-    sma20_score = min(max((sma20 - 20) / (85 - 20) * 100, 0), 100)
-    sma50_score = min(max((sma50 - 30) / (85 - 30) * 100, 0), 100)
-    sma200_score = min(max((sma200 - 40) / (80 - 40) * 100, 0), 100)
-    nh_nl_score = min(max((nh_nl + 50) / 100 * 100, 0), 100)
-    vol_score = min(max((vol_ratio - 0.5) / (1.5 - 0.5) * 100, 0), 100)
-    return round(
-        sma20_score * 0.25 + sma50_score * 0.25 + sma200_score * 0.2 + nh_nl_score * 0.15 + vol_score * 0.15, 1
-    )
-
-
 def _vix_term_signal(vix: float, vix_3m: float) -> tuple[Signal, str]:
     if vix == 0.0 or vix_3m == 0.0:
         return Signal.NEUTRAL, "Insufficient Data"
@@ -370,6 +359,84 @@ def _atr_signal(atr_pct: float) -> tuple[Signal, str]:
     return Signal.HEALTHY, "Normal Volatility"
 
 
+def _compute_fear_greed(sma50_pct: float, hl_index: float, mco: float, vix: float) -> float:
+    """
+    Refined 7-Factor Fear & Greed Index (Institutional Proxy).
+    Weights: 
+    - 20% Market Momentum (SPY vs 125d SMA)
+    - 15% Stock Price Strength (High-Low Index)
+    - 15% Stock Price Breadth (McClellan Oscillator)
+    - 15% Market Volatility (VIX vs 50d SMA)
+    - 15% Breadth Participation (% Stocks > SMA 50)
+    - 10% Safe Haven Demand (SPY vs IEF 20d)
+    - 10% Junk Bond Demand (HYG vs LQD 20d)
+    """
+    
+    # 1. Market Momentum (20%)
+    try:
+        spy_hist = dp.execute_managed_fetch(dp.fetch_yf_data, "SPY", period="1y", interval="1d", group_by="column")
+        spy_close = spy_hist["Close"].squeeze()
+        sma125 = spy_close.rolling(125).mean().iloc[-1]
+        current_spy = spy_close.iloc[-1]
+        momentum_ratio = current_spy / sma125
+        # 0.95 (Fear) to 1.05 (Greed)
+        momentum_score = min(max((momentum_ratio - 0.95) / (1.05 - 0.95) * 100, 0), 100)
+    except: momentum_score = 50
+
+    # 2. Stock Price Strength (15%) - use hl_index directly (0-100)
+    strength_score = hl_index
+
+    # 3. Stock Price Breadth (15%) - use MCO
+    # Normalize MCO (-50 to +50) to 0-100
+    breadth_score = min(max((mco + 50) / 100 * 100, 0), 100)
+
+    # 4. Market Volatility (15%)
+    try:
+        vix_hist = dp.execute_managed_fetch(dp.fetch_yf_data, "^VIX", period="1y", interval="1d", group_by="column")
+        vix_close = vix_hist["Close"].squeeze()
+        vix_sma50 = vix_close.rolling(50).mean().iloc[-1]
+        # Complacency (Low VIX) is Greed. If VIX < SMA50, it's greedy.
+        vol_ratio = vix_sma50 / vix if vix > 0 else 1.0
+        vol_score = min(max((vol_ratio - 0.7) / (1.3 - 0.7) * 100, 0), 100)
+    except: vol_score = 50
+
+    # 5. Breadth Participation (15%) - use sma50_pct
+    # 30% (Fear) to 85% (Greed)
+    participation_score = min(max((sma50_pct - 30) / (85 - 30) * 100, 0), 100)
+
+    # 6. Safe Haven Demand (10%) - SPY vs IEF (20d)
+    try:
+        assets = dp.execute_managed_fetch(dp.fetch_yf_data, ["SPY", "IEF"], period="2mo", interval="1d", group_by="ticker")
+        spy_ret = (assets["SPY"]["Close"].iloc[-1] / assets["SPY"]["Close"].iloc[-20]) - 1
+        ief_ret = (assets["IEF"]["Close"].iloc[-1] / assets["IEF"]["Close"].iloc[-20]) - 1
+        relative_ret = spy_ret - ief_ret
+        # -0.05 to +0.05
+        safe_haven_score = min(max((relative_ret + 0.05) / 0.1 * 100, 0), 100)
+    except: safe_haven_score = 50
+
+    # 7. Junk Bond Demand (10%) - HYG vs LQD (20d)
+    try:
+        bonds = dp.execute_managed_fetch(dp.fetch_yf_data, ["HYG", "LQD"], period="2mo", interval="1d", group_by="ticker")
+        hyg_ret = (bonds["HYG"]["Close"].iloc[-1] / bonds["HYG"]["Close"].iloc[-20]) - 1
+        lqd_ret = (bonds["LQD"]["Close"].iloc[-1] / bonds["LQD"]["Close"].iloc[-20]) - 1
+        bond_spread_ret = hyg_ret - lqd_ret
+        # -0.02 to +0.02
+        junk_bond_score = min(max((bond_spread_ret + 0.02) / 0.04 * 100, 0), 100)
+    except: junk_bond_score = 50
+
+    final_score = (
+        momentum_score * 0.20 +
+        strength_score * 0.15 +
+        breadth_score * 0.15 +
+        vol_score * 0.15 +
+        participation_score * 0.15 +
+        safe_haven_score * 0.10 +
+        junk_bond_score * 0.10
+    )
+    
+    return round(final_score, 1)
+
+
 # ---------------------------------------------------------------------------
 # Main breadth function
 # ---------------------------------------------------------------------------
@@ -395,8 +462,6 @@ def _compute_market_breadth_logic() -> MarketBreadth:
     except Exception:
         hl_ratio = (nh / (nh + nl) * 100) if (nh + nl) > 0 else 50.0
         
-    fg = _compute_fear_greed(sma20, sma50, sma200, nh_nl, vol_ratio)
-    
     risk_metrics = _fetch_risk_metrics()
     vix = risk_metrics["vix"]
     vix_3m = risk_metrics["vix_3m"]
@@ -405,6 +470,9 @@ def _compute_market_breadth_logic() -> MarketBreadth:
     
     ad_data = _fetch_ad_line_data()
     mco = ad_data.get("MCO", 0.0)
+
+    # Use the refined 7-factor model for Fear & Greed
+    fg = _compute_fear_greed(sma50, hl_ratio, mco, vix)
 
     sig20, act20 = _breadth_signal_sma20(sma20)
     sig50, act50 = _breadth_signal_sma50(sma50)
