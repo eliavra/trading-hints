@@ -6,3 +6,4 @@ requests
 lxml
 numpy
 streamlit-autorefresh
+pytz
