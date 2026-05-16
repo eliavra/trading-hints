@@ -36,22 +36,22 @@ c1, c2 = st.columns(2)
 
 with c1:
     with st.container(border=True):
-        st.page_link("pages/1_sentiment.py", label=f"**{t('sentiment')}**", icon="📊")
+        st.page_link("views/1_sentiment.py", label=f"**{t('sentiment')}**", icon="📊")
         st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>{t('sentiment_desc')}</div>", unsafe_allow_html=True)
 
     with st.container(border=True):
-        st.page_link("pages/2_sectors.py", label=f"**{t('sectors')}**", icon="🔄")
+        st.page_link("views/2_sectors.py", label=f"**{t('sectors')}**", icon="🔄")
         st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>{t('sectors_desc')}</div>", unsafe_allow_html=True)
 
 with c2:
     with st.container(border=True):
-        st.page_link("pages/4_risk.py", label=f"**{t('risk')}**", icon="⚡")
+        st.page_link("views/4_risk.py", label=f"**{t('risk')}**", icon="⚡")
         st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>{t('risk_desc')}</div>", unsafe_allow_html=True)
 
     with st.container(border=True):
-        st.page_link("pages/3_seasonality.py", label=f"**{t('seasonality')}**", icon="🏹")
+        st.page_link("views/3_seasonality.py", label=f"**{t('seasonality')}**", icon="🏹")
         st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>{t('seasonality_desc')}</div>", unsafe_allow_html=True)
 
     with st.container(border=True):
-        st.page_link("pages/5_about.py", label=f"**{t('about')}**", icon="ℹ️")
+        st.page_link("views/5_about.py", label=f"**{t('about')}**", icon="ℹ️")
         st.markdown(f"<div style='font-size:0.85rem;color:{SLATE_600};margin-top:0.5rem;'>View version information and provide feedback.</div>", unsafe_allow_html=True)

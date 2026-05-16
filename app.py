@@ -11,12 +11,12 @@ if "lang" not in st.session_state:
 st.set_page_config(page_title=f"{t('app_title')} | Quantitative Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # Define pages
-page_home = st.Page("pages/0_home.py", title=t("home"), icon="🏠", default=True)
-page_sentiment = st.Page("pages/1_sentiment.py", title=t("sentiment"), icon="📊")
-page_sectors = st.Page("pages/2_sectors.py", title=t("sectors"), icon="🔄")
-page_seasonality = st.Page("pages/3_seasonality.py", title=t("seasonality"), icon="🏹")
-page_risk = st.Page("pages/4_risk.py", title=t("risk"), icon="⚡")
-page_about = st.Page("pages/5_about.py", title=t("about"), icon="ℹ️")
+page_home = st.Page("views/0_home.py", title=t("home"), icon="🏠", default=True)
+page_sentiment = st.Page("views/1_sentiment.py", title=t("sentiment"), icon="📊")
+page_sectors = st.Page("views/2_sectors.py", title=t("sectors"), icon="🔄")
+page_seasonality = st.Page("views/3_seasonality.py", title=t("seasonality"), icon="🏹")
+page_risk = st.Page("views/4_risk.py", title=t("risk"), icon="⚡")
+page_about = st.Page("views/5_about.py", title=t("about"), icon="ℹ️")
 
 pg = st.navigation([page_home, page_sentiment, page_sectors, page_seasonality, page_risk, page_about])
 
